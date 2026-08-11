@@ -37,3 +37,10 @@ Primary organization: `opto-sync`
 3. Run the same trace against the reference model and implementation.
 4. Retain failing seeds as regression tests.
 5. Link behavior changes to the matching Linear issue and repository PR.
+
+## Active versioned canaries
+
+The `opto-sync.telemetry/v1` canary vendors the product schema and its synthetic
+valid/invalid corpus. A provenance manifest makes every source byte reproducible,
+and the standard-library validator independently exercises the privacy, timestamp,
+event, severity, request-ID, cycle, and error invariants without network access.

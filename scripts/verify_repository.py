@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 import re
 import tomllib
 from pathlib import Path
@@ -18,30 +18,50 @@ required = {
     "docs/test-strategy.md",
     "scripts/verify_repository.py",
     ".github/workflows/deep-tests.yml",
-    "adapters/dart/check.dart",
-    "adapters/dart/telemetry.dart",
-    "adapters/rust/src/main.rs",
-    "adapters/rust/src/telemetry.rs",
-    "adapters/typescript/check.mjs",
-    "adapters/typescript/telemetry.mjs",
-    "contract/opto-sync-envelope.schema.json",
-    "contract/opto-sync-sdk-api.schema.json",
-    "contract/opto-sync-sdk-api.v1.json",
-    "contract/opto-sync-telemetry-event.schema.json",
-    "contract/sdk-source-lock.json",
-    "contract/source-lock.json",
-    "scripts/audit_generated_harness.mjs",
-    "scripts/run_cross_language_matrix.mjs",
-    "scripts/temporary_rust_workspace.mjs",
-    "scripts/verify_merge_options_source.mjs",
-    "src/deep_tests/__init__.py",
-    "tests/temporary_rust_workspace.test.mjs",
+    *metadata.get("required_paths", []),
 }
 missing = sorted(path for path in required if not (ROOT / path).exists())
 if missing:
     raise SystemExit(f"missing required paths: {missing}")
 if not (ROOT / "tests").is_dir() or not list((ROOT / "tests").glob("test_*.py")):
     raise SystemExit("at least one executable test module is required")
+
+contract_root = ROOT / "contracts" / "opto-sync-telemetry" / "v1"
+provenance = json.loads((contract_root / "provenance.json").read_text(encoding="utf-8"))
+source = provenance.get("source", {})
+if provenance.get("manifest_version") != 1 or provenance.get("contract") != "opto-sync.telemetry/v1":
+    raise SystemExit("telemetry provenance identity drift")
+if provenance.get("product_version") != "0.3.0":
+    raise SystemExit("telemetry product version drift")
+if source.get("repository") != "opto-sync/opto-sync-clients":
+    raise SystemExit("telemetry source repository drift")
+if source.get("commit") != "dddb3bf77ceb894cde538c211bc39a41b4cc6014":
+    raise SystemExit("telemetry source commit drift")
+
+entries = provenance.get("files")
+if not isinstance(entries, list) or not entries:
+    raise SystemExit("telemetry provenance has no files")
+listed = [entry.get("vendored_path") for entry in entries if isinstance(entry, dict)]
+if len(listed) != len(entries) or len(set(listed)) != len(listed):
+    raise SystemExit("telemetry provenance paths are missing or duplicated")
+actual = {
+    path.relative_to(contract_root).as_posix()
+    for path in contract_root.rglob("*.json")
+    if path.name != "provenance.json"
+}
+if set(listed) != actual:
+    raise SystemExit(f"telemetry provenance inventory drift: listed={sorted(listed)} actual={sorted(actual)}")
+for entry in entries:
+    relative = Path(entry["vendored_path"])
+    vendored = (contract_root / relative).resolve()
+    if not vendored.is_relative_to(contract_root.resolve()) or not vendored.is_file():
+        raise SystemExit(f"unsafe or missing telemetry provenance path: {relative}")
+    expected_digest = entry.get("sha256", "")
+    if not re.fullmatch(r"[0-9a-f]{64}", expected_digest):
+        raise SystemExit(f"invalid telemetry provenance digest: {relative}")
+    digest = hashlib.sha256(vendored.read_bytes()).hexdigest()
+    if digest != expected_digest:
+        raise SystemExit(f"telemetry provenance hash mismatch: {relative}")
 
 marker = re.compile(r"^(<{7}|={7}|>{7})", re.MULTILINE)
 credential = re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}|lin_api_[A-Za-z0-9]{20,}|BEGIN [A-Z ]*PRIVATE KEY")

@@ -59,4 +59,11 @@ the repository's mode-160000 gitlink:
 node scripts/audit_generated_harness.mjs ../rust-engine-e2e ../typescript-client-e2e ../dart-client-e2e
 ```
 
+## Versioned product canaries
+
+The [`opto-sync.telemetry/v1` canary](docs/opto-sync-telemetry-canary.md) vendors the
+privacy-bounded telemetry schema and sanitized corpus from `opto-sync-clients`. Its
+provenance manifest pins product version `0.3.0`, the exact source commit and paths,
+and SHA-256 hashes, while dependency-free tests enforce the cross-language contract.
+
 Tracking: https://github.com/ORESoftware/ai-agent-coordinator.rs/issues/139

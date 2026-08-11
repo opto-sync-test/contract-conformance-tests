@@ -15,10 +15,12 @@ const sdkContract = JSON.parse(
 const source = sdkContract.mergeOptionsSchema;
 const expected = {
   repository: 'opto-sync/syncer.rs',
-  commit: '8ef3d4bb63738a90b1e3958500578aebb89ee8cc',
+  commit: 'bb71ac1b4b7d94dd7035e6cc7b76e5c10f284e98',
   path: 'schema/merge-options.schema.json',
   id: 'https://opto-sync.dev/schema/merge-options.schema.json',
-  sha256: 'd5bd069eefc24293e3f8d8e666bdbd1d2461b59853f73c0cea7bb7c0424d7bd8',
+  sha256: 'e9107667cee2868a922a70c9c48175c62b466fa728466c23bac766aebcbb2f2a',
+  status: 'canonical',
+  blockers: [],
 };
 
 if (JSON.stringify(source) !== JSON.stringify(expected)) {
@@ -60,6 +62,23 @@ if (schema.$id !== source.id) {
 }
 if (schema.$schema !== 'https://json-schema.org/draft/2020-12/schema') {
   throw new Error(`merge-options schema draft drift: ${schema.$schema}`);
+}
+const expectedProperties = [
+  'arrayMatchKeys',
+  'arrayStrategy',
+  'detectCircularRefs',
+  'fwwKeys',
+  'lwwKeys',
+  'maxDepth',
+  'resolveByTimestamp',
+];
+if (
+  schema.additionalProperties !== false
+  || JSON.stringify(Object.keys(schema.properties).sort()) !== JSON.stringify(expectedProperties)
+  || schema.properties.detectCircularRefs?.type !== 'boolean'
+  || schema.properties.detectCircularRefs?.default !== false
+) {
+  throw new Error('merge-options schema is not the closed canonical seven-key contract');
 }
 
 console.log(`verified ${source.repository}@${source.commit} ${source.path} sha256=${digest}`);

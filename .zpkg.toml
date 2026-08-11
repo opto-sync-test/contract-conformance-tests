@@ -12,11 +12,6 @@ url = "https://github.com/opto-sync-test/contract-conformance-tests"
 [install]
 dir = ".vendor/.zed"
 
-[dependencies]
-"opto-sync/opto-sync-clients" = "^0.2.0"
-"ores-otel/ores-interfaces" = "^0.1.0"
-"oresoftware/next-loggers" = "^0.1.0"
-
 [develop]
 commands = [
   "PYTHONPATH=src python -m unittest discover -s tests -v",

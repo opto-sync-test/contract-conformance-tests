@@ -9,8 +9,9 @@ contract drift without network access or product credentials.
 The authoritative byte-level provenance is
 `contracts/opto-sync-telemetry/v1/provenance.json`. It pins product version `0.3.0`,
 the exact product commit, every upstream source path, and the SHA-256 digest of the
-vendored schema and fixture files. The product change is reviewed in
-[opto-sync-clients PR #82](https://github.com/opto-sync/opto-sync-clients/pull/82).
+vendored schema and fixture files. PR #82 established the privacy-bounded wire
+contract; its SDK/API reconciliation and final source pin are reviewed in
+[opto-sync-clients PR #83](https://github.com/opto-sync/opto-sync-clients/pull/83).
 
 The canary intentionally vendors files instead of fetching them in CI. Updating the
 contract requires one focused pull request that changes the files and provenance

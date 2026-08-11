@@ -17,6 +17,14 @@ const modulePath = path.join(
   'ingest.js',
 );
 const { parseEnvelope } = await import(pathToFileURL(modulePath));
+const { compareHlc, formatHlc, parseHlc } = await import(pathToFileURL(path.join(
+  clientsRoot,
+  'clients',
+  'ts',
+  'dist',
+  'esm',
+  'clock.js',
+)));
 const decisions = {};
 
 for (const fixturePath of process.argv.slice(2)) {
@@ -29,4 +37,11 @@ for (const fixturePath of process.argv.slice(2)) {
   }
 }
 
-process.stdout.write(`${JSON.stringify({ runtime: 'typescript', decisions })}\n`);
+const formatted = formatHlc({ millis: 1721822400000, counter: 255, nodeId: '9f3a2b' });
+const hlc = {
+  formatted,
+  parsed: parseHlc(formatted),
+  compared: compareHlc(formatted, '1721822400001-0000-9f3a2b'),
+};
+
+process.stdout.write(`${JSON.stringify({ runtime: 'typescript', decisions, hlc })}\n`);

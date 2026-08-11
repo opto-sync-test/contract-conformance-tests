@@ -21,8 +21,12 @@ Primary organization: `opto-sync`
 - conformance output records fixture identifiers and decisions only; customer
   payloads and raw documents are never logged.
 - structured logging stays injection-only: Rust, Dart, and TypeScript must emit
-  one identical closed telemetry shape, reject sensitive fields, and preserve
-  sync results when a logger fails or panics;
+  the same closed telemetry shape apart from the truthful runtime attribute,
+  reject sensitive fields, and preserve sync results when a logger fails or
+  panics;
+- all six `portable` SDK operations execute through real language adapters:
+  HLC format/parse/compare, envelope parsing, telemetry record creation, and
+  fail-open telemetry delivery; the other twelve retain explicit differences;
 - the client SDK merge-options reference must resolve to the exact clean
   `opto-sync/syncer.rs` commit, schema digest, and `$id` recorded in the manifest;
 - generated fleet validators are not sufficient evidence by themselves: the

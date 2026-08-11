@@ -12,6 +12,10 @@ const lock = JSON.parse(fs.readFileSync(path.join(root, 'contract', 'source-lock
 const sdkLock = JSON.parse(
   fs.readFileSync(path.join(root, 'contract', 'sdk-source-lock.json'), 'utf8'),
 );
+const telemetryContractRoot = path.join(root, 'contracts', 'opto-sync-telemetry', 'v1');
+const telemetryProvenance = JSON.parse(
+  fs.readFileSync(path.join(telemetryContractRoot, 'provenance.json'), 'utf8'),
+);
 const args = new Set(process.argv.slice(2));
 const prepare = args.has('--prepare');
 const requireTelemetry = args.has('--require-telemetry');
@@ -77,7 +81,11 @@ function assertSourceContract() {
     if (path.relative(clientsRoot, sourcePath).startsWith('..')) {
       throw new Error(`SDK source asset escapes clients checkout: ${asset.path}`);
     }
-    if (path.relative(path.join(root, 'contract'), mirrorPath).startsWith('..')) {
+    const mirrorRoots = [path.join(root, 'contract'), telemetryContractRoot];
+    if (!mirrorRoots.some((mirrorRoot) => {
+      const relative = path.relative(mirrorRoot, mirrorPath);
+      return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
+    })) {
       throw new Error(`SDK mirror asset escapes contract directory: ${asset.mirror}`);
     }
     const sourceDigest = sha256(sourcePath);
@@ -96,6 +104,34 @@ function assertSourceContract() {
     }
   }
 
+  if (telemetryProvenance.source.commit !== lock.source.revision) {
+    throw new Error(
+      `telemetry source revision drift: envelope=${lock.source.revision} telemetry=${telemetryProvenance.source.commit}`,
+    );
+  }
+  for (const entry of telemetryProvenance.files) {
+    const sourcePath = path.resolve(clientsRoot, entry.source_path);
+    const vendoredPath = path.resolve(telemetryContractRoot, entry.vendored_path);
+    const sourceRelative = path.relative(clientsRoot, sourcePath);
+    const vendoredRelative = path.relative(telemetryContractRoot, vendoredPath);
+    if (sourceRelative.startsWith('..') || path.isAbsolute(sourceRelative)) {
+      throw new Error(`telemetry source path escapes clients checkout: ${entry.source_path}`);
+    }
+    if (vendoredRelative.startsWith('..') || path.isAbsolute(vendoredRelative)) {
+      throw new Error(`telemetry mirror path escapes contract directory: ${entry.vendored_path}`);
+    }
+    const sourceDigest = sha256(sourcePath);
+    const vendoredDigest = sha256(vendoredPath);
+    if (sourceDigest !== entry.sha256 || vendoredDigest !== entry.sha256) {
+      throw new Error(
+        `telemetry asset digest drift for ${entry.source_path}: locked=${entry.sha256} source=${sourceDigest} mirror=${vendoredDigest}`,
+      );
+    }
+    if (!fs.readFileSync(sourcePath).equals(fs.readFileSync(vendoredPath))) {
+      throw new Error(`telemetry mirror is not byte-for-byte identical to ${entry.source_path}`);
+    }
+  }
+
   if (process.env.OPTO_SYNC_ALLOW_UNPINNED_SOURCE !== '1') {
     const revision = run('git', ['rev-parse', 'HEAD'], { cwd: clientsRoot, capture: true });
     if (revision !== lock.source.revision) {
@@ -103,6 +139,11 @@ function assertSourceContract() {
     }
     const status = run('git', ['status', '--porcelain=v1'], { cwd: clientsRoot, capture: true });
     if (status !== '') throw new Error('authoritative source checkout is not clean');
+    const remote = run('git', ['remote', 'get-url', 'origin'], { cwd: clientsRoot, capture: true })
+      .replace(/\.git$/u, '');
+    if (!remote.endsWith('/opto-sync/opto-sync-clients') && !remote.endsWith(':opto-sync/opto-sync-clients')) {
+      throw new Error(`opto-sync clients origin drift: ${remote}`);
+    }
   }
 }
 
@@ -137,6 +178,12 @@ function parseAdapterOutput(output, runtime, requiredField) {
   }
   return report;
 }
+
+const expectedHlc = {
+  formatted: '1721822400000-00ff-9f3a2b',
+  parsed: { millis: 1721822400000, counter: 255, nodeId: '9f3a2b' },
+  compared: -1,
+};
 
 function runTypeScript(fixtures) {
   const cwd = path.join(clientsRoot, 'clients', 'ts');
@@ -279,20 +326,23 @@ const fixturePaths = corpus.map((entry) => entry.path);
 const expected = Object.fromEntries(corpus.map((entry) => [entry.key, entry.accepted]));
 const runners = { rust: runRust, typescript: runTypeScript, dart: runDart };
 const reports = {};
-const expectedTelemetry = {
-  schemaVersion: 1,
-  name: 'opto_sync.sync.cycle_succeeded',
-  level: 'info',
-  fields: {
-    operation: 'protocolSyncCycle',
-    checkpoint: '9',
-    pushedMutations: 2,
-    acknowledgedMutations: 2,
-    pulledChanges: 1,
-    installedSnapshots: 0,
-    hasMorePending: false,
-  },
-};
+function expectedTelemetry(runtime) {
+  return {
+    body: 'opto-sync state changed',
+    severityText: 'INFO',
+    severityNumber: 9,
+    timestamp: '2026-08-11T17:53:28.151Z',
+    attributes: {
+      'service.name': 'opto-sync',
+      'event.name': 'opto.sync.state.changed',
+      'opto.sync.schema': 'opto-sync.telemetry/v1',
+      'opto.sync.runtime': runtime,
+      'opto.sync.status': 'idle',
+      'opto.sync.consecutive_failures': 0,
+      'request.id': 'sync-cycle-42',
+    },
+  };
+}
 
 function canonicalJson(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
@@ -305,8 +355,45 @@ function canonicalJson(value) {
   return JSON.stringify(value);
 }
 
+const forbiddenTelemetryKeys = new Set([
+  'payload',
+  'record',
+  'recordid',
+  'mutation',
+  'mutationid',
+  'checkpoint',
+  'errormessage',
+  'exceptionstacktrace',
+  'httprequestbody',
+  'httpresponsebody',
+  'dbstatement',
+  'authorization',
+  'cookie',
+  'token',
+]);
+
+function assertNoForbiddenTelemetryKeys(value, runtime, pathParts = []) {
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => {
+      assertNoForbiddenTelemetryKeys(entry, runtime, [...pathParts, String(index)]);
+    });
+    return;
+  }
+  if (value === null || typeof value !== 'object') return;
+  for (const [key, entry] of Object.entries(value)) {
+    const normalized = key.toLowerCase().replaceAll(/[^a-z0-9]/gu, '');
+    if (forbiddenTelemetryKeys.has(normalized)) {
+      throw new Error(`${runtime} telemetry exposed forbidden key ${[...pathParts, key].join('.')}`);
+    }
+    assertNoForbiddenTelemetryKeys(entry, runtime, [...pathParts, key]);
+  }
+}
+
 for (const runtime of requested) {
   reports[runtime] = runners[runtime](fixturePaths);
+  if (canonicalJson(reports[runtime].hlc) !== canonicalJson(expectedHlc)) {
+    throw new Error(`${runtime} HLC format/parse/compare differs from the portable contract`);
+  }
   for (const entry of corpus) {
     if (reports[runtime].decisions[entry.key] !== entry.accepted) {
       throw new Error(
@@ -317,22 +404,32 @@ for (const runtime of requested) {
   const unexpected = Object.keys(reports[runtime].decisions).filter((key) => !(key in expected));
   if (unexpected.length > 0) throw new Error(`${runtime} emitted unknown fixtures: ${unexpected.join(', ')}`);
   if (requireTelemetry) {
-    if (canonicalJson(reports[runtime].telemetry) !== canonicalJson(expectedTelemetry)) {
-      throw new Error(`${runtime} telemetry shape differs from the metadata-only contract`);
+    if (canonicalJson(reports[runtime].telemetry) !== canonicalJson(expectedTelemetry(runtime))) {
+      throw new Error(`${runtime} telemetry shape differs from the privacy-bounded Ores contract`);
     }
-    if (/payload|token|request|response|cookie|authorization/iu.test(canonicalJson(reports[runtime].telemetry))) {
-      throw new Error(`${runtime} telemetry exposed a forbidden field`);
-    }
+    assertNoForbiddenTelemetryKeys(reports[runtime].telemetry, runtime);
   }
 }
 
 for (let index = 1; index < requested.length; index += 1) {
-  const comparable = (report) => ({ decisions: report.decisions, telemetry: report.telemetry });
+  const comparable = (report) => ({
+    decisions: report.decisions,
+    hlc: report.hlc,
+    telemetry: report.telemetry === undefined
+      ? undefined
+      : {
+          ...report.telemetry,
+          attributes: {
+            ...report.telemetry.attributes,
+            'opto.sync.runtime': '$runtime',
+          },
+        },
+  });
   const left = canonicalJson(comparable(reports[requested[0]]));
   const right = canonicalJson(comparable(reports[requested[index]]));
   if (left !== right) throw new Error(`${requested[0]} and ${requested[index]} decision matrices differ`);
 }
 
 console.log(
-  `validated ${corpus.length} canonical envelope fixtures${requireTelemetry ? ' and metadata-only telemetry' : ''} across ${requested.join(', ')}; schema=${lock.source.sha256}`,
+  `validated ${corpus.length} canonical envelope fixtures${requireTelemetry ? ' and privacy-bounded Ores telemetry' : ''} across ${requested.join(', ')}; schema=${lock.source.sha256}`,
 );

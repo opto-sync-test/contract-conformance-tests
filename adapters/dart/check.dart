@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:opto_sync_client/schema.dart' as schema;
+import 'package:opto_sync_client/opto_sync_client.dart' as client;
 
 void main(List<String> arguments) {
   final decisions = <String, bool>{};
@@ -18,5 +19,26 @@ void main(List<String> arguments) {
       decisions[key] = false;
     }
   }
-  stdout.writeln(jsonEncode({'runtime': 'dart', 'decisions': decisions}));
+  const parts = client.HlcParts(
+    millis: 1721822400000,
+    counter: 255,
+    nodeId: '9f3a2b',
+  );
+  final formatted = client.formatHlc(parts);
+  final parsed = client.parseHlc(formatted)!;
+  final hlc = <String, Object>{
+    'formatted': formatted,
+    'parsed': <String, Object>{
+      'millis': parsed.millis,
+      'counter': parsed.counter,
+      'nodeId': parsed.nodeId,
+    },
+    'compared': client.compareHlc(
+      formatted,
+      '1721822400001-0000-9f3a2b',
+    ).sign,
+  };
+  stdout.writeln(
+    jsonEncode({'runtime': 'dart', 'decisions': decisions, 'hlc': hlc}),
+  );
 }

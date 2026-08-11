@@ -8,6 +8,7 @@ import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+CLIENT_SOURCE_REVISION = "9c3690e3c5cb445100daaffd6729b6ed6b25217d"
 metadata = json.loads((ROOT / "project.json").read_text(encoding="utf-8"))
 required = {
     "README.md",
@@ -35,7 +36,7 @@ if provenance.get("product_version") != "0.3.0":
     raise SystemExit("telemetry product version drift")
 if source.get("repository") != "opto-sync/opto-sync-clients":
     raise SystemExit("telemetry source repository drift")
-if source.get("commit") != "dddb3bf77ceb894cde538c211bc39a41b4cc6014":
+if source.get("commit") != CLIENT_SOURCE_REVISION:
     raise SystemExit("telemetry source commit drift")
 
 entries = provenance.get("files")
@@ -114,10 +115,12 @@ if f"ref: {source_lock['source']['revision']}" not in workflow:
 
 merge_source = {
     "repository": "opto-sync/syncer.rs",
-    "commit": "8ef3d4bb63738a90b1e3958500578aebb89ee8cc",
+    "commit": "bb71ac1b4b7d94dd7035e6cc7b76e5c10f284e98",
     "path": "schema/merge-options.schema.json",
     "id": "https://opto-sync.dev/schema/merge-options.schema.json",
-    "sha256": "d5bd069eefc24293e3f8d8e666bdbd1d2461b59853f73c0cea7bb7c0424d7bd8",
+    "sha256": "e9107667cee2868a922a70c9c48175c62b466fa728466c23bac766aebcbb2f2a",
+    "status": "canonical",
+    "blockers": [],
 }
 required_merge_workflow_fragments = (
     "repository: opto-sync/syncer.rs",
@@ -132,13 +135,10 @@ for fragment in required_merge_workflow_fragments:
 zed_manifest = tomllib.loads((ROOT / ".zpkg.toml").read_text(encoding="utf-8"))
 if zed_manifest.get("package", {}).get("org") != "opto-sync-test":
     raise SystemExit("Zed package organization drift")
-expected_dependencies = {
-    "opto-sync/opto-sync-clients": "^0.2.0",
-    "ores-otel/ores-interfaces": "^0.1.0",
-    "oresoftware/next-loggers": "^0.1.0",
-}
-if zed_manifest.get("dependencies") != expected_dependencies:
-    raise SystemExit(f"Zed dependency contract drift: {zed_manifest.get('dependencies')}")
+if zed_manifest.get("dependencies", {}):
+    raise SystemExit(
+        "test package must not declare unreleased clients/Ores Zed dependencies"
+    )
 if "node --test tests/temporary_rust_workspace.test.mjs" not in zed_manifest.get(
     "develop", {}
 ).get("commands", []):
@@ -148,8 +148,8 @@ sdk_lock = json.loads((ROOT / "contract/sdk-source-lock.json").read_text(encodin
 expected_sdk_source = {
     "repository": "opto-sync/opto-sync-clients",
     "packageCoordinate": "opto-sync/opto-sync-clients",
-    "packageVersion": "0.2.0",
-    "revision": "abd83db42f604ce1094bdb24230672d7e6010bac",
+    "packageVersion": "0.3.0",
+    "revision": CLIENT_SOURCE_REVISION,
 }
 if sdk_lock.get("source") != expected_sdk_source:
     raise SystemExit(f"SDK source identity drift: {sdk_lock.get('source')}")
@@ -158,15 +158,18 @@ if sdk_lock["source"]["revision"] != source_lock["source"]["revision"]:
 expected_sdk_assets = {
     "schema/opto-sync-sdk-api.schema.json",
     "schema/opto-sync-sdk-api.v1.json",
+    "schema/opto-sync-sdk-values.v1.schema.json",
     "schema/opto-sync-telemetry-event.schema.json",
+    "schema/opto-sync-telemetry.schema.json",
 }
 if {asset.get("path") for asset in sdk_lock.get("assets", [])} != expected_sdk_assets:
     raise SystemExit("SDK mirror asset set drift")
 for asset in sdk_lock.get("assets", []):
     if not asset.get("path", "").startswith("schema/"):
         raise SystemExit(f"SDK source path escapes schema ownership: {asset.get('path')}")
-    mirror = ROOT / asset.get("mirror", "")
-    if not mirror.is_relative_to(ROOT / "contract") or not mirror.is_file():
+    mirror = (ROOT / asset.get("mirror", "")).resolve()
+    allowed_mirror_roots = ((ROOT / "contract").resolve(), contract_root.resolve())
+    if not any(mirror.is_relative_to(root) for root in allowed_mirror_roots) or not mirror.is_file():
         raise SystemExit(f"SDK mirror path is invalid: {asset.get('mirror')}")
     contents = mirror.read_bytes()
     digest = hashlib.sha256(contents).hexdigest()
@@ -181,22 +184,100 @@ for asset in sdk_lock.get("assets", []):
 sdk_contract = json.loads((ROOT / "contract/opto-sync-sdk-api.v1.json").read_text(encoding="utf-8"))
 if sdk_contract.get("mergeOptionsSchema") != merge_source:
     raise SystemExit("SDK merge-options schema ownership drift")
-if len(sdk_contract.get("operations", [])) < 19:
-    raise SystemExit("SDK API contract lost portable operations")
-for operation in sdk_contract["operations"]:
+operations = sdk_contract.get("operations", [])
+operation_ids = [operation.get("id") for operation in operations]
+expected_operation_ids = {
+    "queueUpsert",
+    "queueDelete",
+    "pendingMutations",
+    "buildPushRequest",
+    "acknowledgePush",
+    "pullCheckpoint",
+    "installSnapshot",
+    "reconcileIncoming",
+    "rebasePending",
+    "formatHlc",
+    "parseHlc",
+    "compareHlc",
+    "parseEnvelope",
+    "auditEnvelopeProvider",
+    "protocolSyncCycle",
+    "webSocketTransport",
+    "createProtocolSyncTelemetryRecord",
+    "emitProtocolSyncTelemetry",
+}
+if len(operations) != 18 or set(operation_ids) != expected_operation_ids:
+    raise SystemExit(f"SDK API operation inventory drift: {operation_ids}")
+if len(operation_ids) != len(set(operation_ids)):
+    raise SystemExit("SDK API operation ids are duplicated")
+expected_portable = {
+    "formatHlc",
+    "parseHlc",
+    "compareHlc",
+    "parseEnvelope",
+    "createProtocolSyncTelemetryRecord",
+    "emitProtocolSyncTelemetry",
+}
+actual_portable = {
+    operation["id"]
+    for operation in operations
+    if operation.get("conformance") == "portable"
+}
+if actual_portable != expected_portable:
+    raise SystemExit(f"portable SDK operation classification drift: {actual_portable}")
+values_schema = json.loads(
+    (ROOT / "contract/opto-sync-sdk-values.v1.schema.json").read_text(encoding="utf-8")
+)
+values_prefix = f"{values_schema['$id']}#/$defs/"
+for operation in operations:
     if set(operation.get("bindings", {})) != {"rust", "dart", "typescript"}:
         raise SystemExit(f"SDK operation language parity drift: {operation.get('id')}")
+    conformance = operation.get("conformance")
+    if conformance == "candidate" and not operation.get("differences"):
+        raise SystemExit(f"candidate SDK operation lacks differences: {operation.get('id')}")
+    if conformance not in {"portable", "candidate"}:
+        raise SystemExit(f"unknown SDK conformance state: {operation.get('id')}")
+    normalized = operation.get("normalized", {})
+    refs = (
+        [normalized.get("requestSchemaRef"), normalized.get("resultSchemaRef")]
+        if normalized.get("kind") == "call"
+        else [normalized.get("contractSchemaRef")]
+    )
+    for reference in refs:
+        if not isinstance(reference, str) or not reference.startswith(values_prefix):
+            raise SystemExit(f"SDK normalized reference drift: {operation.get('id')} {reference}")
+        definition = reference.removeprefix(values_prefix)
+        if definition not in values_schema.get("$defs", {}):
+            raise SystemExit(f"SDK normalized reference is unresolved: {reference}")
 sdk_dependencies = sdk_contract.get("dependencies", {})
 if sdk_dependencies.get("sharedInterfaces") != {
     "coordinate": "ores-otel/ores-interfaces",
     "version": "^0.1.0",
+    "status": "pending-release",
+    "integration": "injected",
 }:
     raise SystemExit("SDK shared-interface dependency drift")
 if sdk_dependencies.get("structuredLogging") != {
     "coordinate": "oresoftware/next-loggers",
     "version": "^0.1.0",
+    "status": "pending-release",
+    "integration": "injected",
 }:
     raise SystemExit("SDK structured-logging dependency drift")
 if sdk_contract.get("telemetry", {}).get("payloadPolicy") != "metadata_only":
     raise SystemExit("SDK telemetry payload policy drift")
+if sdk_contract.get("telemetry", {}).get("eventSchema") != {
+    "path": "schema/opto-sync-telemetry.schema.json",
+    "id": "https://opto-sync.dev/schema/opto-sync-telemetry.v1.schema.json",
+}:
+    raise SystemExit("SDK telemetry schema reference drift")
+if provenance["source"]["commit"] != sdk_lock["source"]["revision"]:
+    raise SystemExit("telemetry and SDK provenance revisions disagree")
+telemetry_alias = json.loads(
+    (ROOT / "contract/opto-sync-telemetry-event.schema.json").read_text(encoding="utf-8")
+)
+if telemetry_alias.get("deprecated") is not True or telemetry_alias.get("$ref") != (
+    "https://opto-sync.dev/schema/opto-sync-telemetry.v1.schema.json"
+):
+    raise SystemExit("legacy telemetry identifier is not a deprecated canonical alias")
 print(f"validated {metadata['organization']}/{metadata['repository']} suite={metadata['suite']}")

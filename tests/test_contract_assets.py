@@ -32,7 +32,7 @@ class ContractAssetTests(unittest.TestCase):
         )
         self.assertEqual(
             source_lock["source"]["revision"],
-            "abd83db42f604ce1094bdb24230672d7e6010bac",
+            "9c3690e3c5cb445100daaffd6729b6ed6b25217d",
         )
         for asset in source_lock["assets"]:
             contents = (ROOT / asset["mirror"]).read_bytes()
@@ -44,15 +44,32 @@ class ContractAssetTests(unittest.TestCase):
         contract = json.loads(
             (ROOT / "contract/opto-sync-sdk-api.v1.json").read_text(encoding="utf-8")
         )
-        self.assertGreaterEqual(len(contract["operations"]), 19)
+        self.assertEqual(len(contract["operations"]), 18)
         self.assertEqual(
             contract["mergeOptionsSchema"],
             {
                 "repository": "opto-sync/syncer.rs",
-                "commit": "8ef3d4bb63738a90b1e3958500578aebb89ee8cc",
+                "commit": "bb71ac1b4b7d94dd7035e6cc7b76e5c10f284e98",
                 "path": "schema/merge-options.schema.json",
                 "id": "https://opto-sync.dev/schema/merge-options.schema.json",
-                "sha256": "d5bd069eefc24293e3f8d8e666bdbd1d2461b59853f73c0cea7bb7c0424d7bd8",
+                "sha256": "e9107667cee2868a922a70c9c48175c62b466fa728466c23bac766aebcbb2f2a",
+                "status": "canonical",
+                "blockers": [],
+            },
+        )
+        self.assertEqual(
+            {
+                operation["id"]
+                for operation in contract["operations"]
+                if operation["conformance"] == "portable"
+            },
+            {
+                "formatHlc",
+                "parseHlc",
+                "compareHlc",
+                "parseEnvelope",
+                "createProtocolSyncTelemetryRecord",
+                "emitProtocolSyncTelemetry",
             },
         )
         for operation in contract["operations"]:
@@ -66,6 +83,10 @@ class ContractAssetTests(unittest.TestCase):
             "oresoftware/next-loggers",
         )
         self.assertEqual(contract["telemetry"]["payloadPolicy"], "metadata_only")
+        self.assertEqual(
+            contract["telemetry"]["eventSchema"]["id"],
+            "https://opto-sync.dev/schema/opto-sync-telemetry.v1.schema.json",
+        )
 
     def test_merge_options_source_gate_is_immutably_wired(self) -> None:
         workflow = (ROOT / ".github/workflows/deep-tests.yml").read_text(
@@ -73,7 +94,7 @@ class ContractAssetTests(unittest.TestCase):
         )
         for fragment in (
             "repository: opto-sync/syncer.rs",
-            "ref: 8ef3d4bb63738a90b1e3958500578aebb89ee8cc",
+            "ref: bb71ac1b4b7d94dd7035e6cc7b76e5c10f284e98",
             "path: .source/syncer-rs",
             "node scripts/verify_merge_options_source.mjs",
         ):

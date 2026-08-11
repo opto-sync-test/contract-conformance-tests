@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: opto-sync/opto-sync-clients
-          ref: abd83db42f604ce1094bdb24230672d7e6010bac
+          ref: 9c3690e3c5cb445100daaffd6729b6ed6b25217d
           path: .source/opto-sync-clients
           persist-credentials: false
           submodules: recursive
@@ -57,7 +57,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: opto-sync/syncer.rs
-          ref: 8ef3d4bb63738a90b1e3958500578aebb89ee8cc
+          ref: bb71ac1b4b7d94dd7035e6cc7b76e5c10f284e98
           path: .source/syncer-rs
           persist-credentials: false
       - name: Set up Node.js
@@ -79,7 +79,7 @@ jobs:
         env:
           SYNCER_RS_DIR: ${{ github.workspace }}/.source/syncer-rs
         run: node scripts/verify_merge_options_source.mjs
-      - name: Verify upstream Zed package and Ores dependency contract
+      - name: Verify upstream package boundary and pending Ores release state
         working-directory: .source/opto-sync-clients
         run: python scripts/check-zed-packaging.py
       - name: Validate upstream JSON Schema contracts

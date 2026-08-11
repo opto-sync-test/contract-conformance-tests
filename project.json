@@ -18,6 +18,7 @@
     "contract/opto-sync-envelope.schema.json",
     "contract/opto-sync-sdk-api.schema.json",
     "contract/opto-sync-sdk-api.v1.json",
+    "contract/opto-sync-sdk-values.v1.schema.json",
     "contract/opto-sync-telemetry-event.schema.json",
     "contract/sdk-source-lock.json",
     "contract/source-lock.json",

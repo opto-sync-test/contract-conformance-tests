@@ -17,12 +17,12 @@ The repository also carries an exact, digest-locked mirror of the authoritative
 does not redefine the contract: `contract/source-lock.json` records its owning
 repository, full revision, path, `$id`, and SHA-256 digest.
 
-The portable SDK API meta-schema, v1 API instance, and closed telemetry-event
-schema are mirrored the same way. `contract/sdk-source-lock.json` records their
-owning package coordinate, version and full revision, authoritative paths,
-identities, and SHA-256 digests. Repository verification fails closed on any
-byte, operation, language-binding, Ores dependency, or metadata-only
-telemetry-policy drift.
+The portable SDK API meta-schema, v1 API instance, normalized-values schema,
+and canonical privacy-bounded telemetry schema are mirrored the same way.
+`contract/sdk-source-lock.json` records their owning package coordinate,
+version and full revision, authoritative paths, identities, and SHA-256
+digests. Repository verification fails closed on any byte, operation,
+language-binding, Ores release-state, or telemetry-policy drift.
 CI separately checks out `opto-sync/syncer.rs` at the exact commit recorded by
 the SDK manifest and verifies its owned merge-options schema bytes and `$id`:
 
@@ -39,17 +39,22 @@ OPTO_SYNC_CLIENTS_DIR=/path/to/opto-sync-clients \
 ```
 
 The runner builds and calls the existing Rust `parse_envelope`, TypeScript
-`parseEnvelope`, and Dart `parseEnvelope` APIs. It fails if any runtime differs
-from the fixture classification, another runtime, the pinned schema bytes, or
-the pinned source revision. It also creates the same closed, metadata-only
-telemetry event through all three SDKs and runs each SDK's sink-failure and
-sensitive-field tests when `--require-telemetry` is selected; CI requires that
-lane. The default mode still enforces all 25 envelope fixtures. For local
+`parseEnvelope`, and Dart `parseEnvelope` APIs. It also executes the shared HLC
+format/parse/compare vector, builds the canonical Ores/OpenTelemetry record,
+and sends it through each runtime's fail-open sink. It fails if any runtime
+differs from the fixture classification, another runtime, the pinned schema
+bytes, or the pinned source revision. Each runtime keeps its truthful
+`opto.sync.runtime` attribute; only that field is normalized for cross-language
+comparison. CI also runs each SDK's sink-failure and sensitive-field tests when
+`--require-telemetry` is selected. The default mode still enforces all 25
+envelope fixtures. For local
 evaluation of an uncommitted upstream branch only, set
 `OPTO_SYNC_ALLOW_UNPINNED_SOURCE=1`; CI never uses that escape hatch.
 
-Dependencies on the opto-sync clients, the canonical Ores shared interfaces,
-and Ores structured logging are declared through `.zpkg.toml`.
+The intended opto-sync and Ores package coordinates remain recorded in the SDK
+contract as injected, `pending-release` metadata. `.zpkg.toml` deliberately
+declares no unresolved dependency; a synthetic registry is not release
+provenance.
 
 Generated fleet repositories can be audited without editing their generated
 plans. This command fails if `source-pins.json` names a different commit than

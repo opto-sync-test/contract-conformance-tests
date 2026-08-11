@@ -3,30 +3,44 @@
   "source": {
     "repository": "opto-sync/opto-sync-clients",
     "packageCoordinate": "opto-sync/opto-sync-clients",
-    "packageVersion": "0.2.0",
-    "revision": "abd83db42f604ce1094bdb24230672d7e6010bac"
+    "packageVersion": "0.3.0",
+    "revision": "9c3690e3c5cb445100daaffd6729b6ed6b25217d"
   },
   "assets": [
     {
       "path": "schema/opto-sync-sdk-api.schema.json",
       "mirror": "contract/opto-sync-sdk-api.schema.json",
-      "sha256": "59bbdbae150660b1c0fe1aa014c635964e1a6b60e0e56f6fab0131e252432052",
+      "sha256": "e28b4df1ef6bd1e25c1364c80451625e7ddaf3e55d35ead2df5474708cb322d1",
       "identityField": "$id",
       "identity": "https://opto-sync.dev/schema/opto-sync-sdk-api.schema.json"
     },
     {
       "path": "schema/opto-sync-sdk-api.v1.json",
       "mirror": "contract/opto-sync-sdk-api.v1.json",
-      "sha256": "91bd7f215b9a68ef4a355b03e3c85edb1d15dae3e4bbbe1357f49c89588ee0c8",
+      "sha256": "11545638496622dbbdeafc177271f8ed69848c47b68f4bc13d993a330a07206c",
       "identityField": "contract",
       "identity": "opto-sync.sdk-api.v1"
     },
     {
+      "path": "schema/opto-sync-sdk-values.v1.schema.json",
+      "mirror": "contract/opto-sync-sdk-values.v1.schema.json",
+      "sha256": "4ba2c1c0b25c21bd3395eb51d72b1f1eb9ef671f8549a8398c521fcd3523d479",
+      "identityField": "$id",
+      "identity": "https://opto-sync.dev/schema/opto-sync-sdk-values.v1.schema.json"
+    },
+    {
       "path": "schema/opto-sync-telemetry-event.schema.json",
       "mirror": "contract/opto-sync-telemetry-event.schema.json",
-      "sha256": "1844a0552a4c2835be1db37615b1703f468e1a07611e8d04a4fb6f2346f96fcf",
+      "sha256": "b1d0cb907f6d3e1e148302934357600896baa952713a61a03348824be3a6a6a9",
       "identityField": "$id",
       "identity": "https://opto-sync.dev/schema/opto-sync-telemetry-event.schema.json"
+    },
+    {
+      "path": "schema/opto-sync-telemetry.schema.json",
+      "mirror": "contracts/opto-sync-telemetry/v1/schema.json",
+      "sha256": "ffdb03d237c0d2c2f580e37039e5238a1b62102d4ede74a8e2d880ede392d413",
+      "identityField": "$id",
+      "identity": "https://opto-sync.dev/schema/opto-sync-telemetry.v1.schema.json"
     }
   ]
 }

@@ -32,6 +32,7 @@ required = {
     "contract/source-lock.json",
     "scripts/audit_generated_harness.mjs",
     "scripts/run_cross_language_matrix.mjs",
+    "scripts/verify_merge_options_source.mjs",
     "src/deep_tests/__init__.py",
 }
 missing = sorted(path for path in required if not (ROOT / path).exists())
@@ -87,6 +88,23 @@ if not re.fullmatch(r"[0-9a-f]{40}", source_lock["source"].get("revision", "")):
 if f"ref: {source_lock['source']['revision']}" not in workflow:
     raise SystemExit("polyglot workflow source revision drift")
 
+merge_source = {
+    "repository": "opto-sync/syncer.rs",
+    "commit": "8ef3d4bb63738a90b1e3958500578aebb89ee8cc",
+    "path": "schema/merge-options.schema.json",
+    "id": "https://opto-sync.dev/schema/merge-options.schema.json",
+    "sha256": "d5bd069eefc24293e3f8d8e666bdbd1d2461b59853f73c0cea7bb7c0424d7bd8",
+}
+required_merge_workflow_fragments = (
+    "repository: opto-sync/syncer.rs",
+    f"ref: {merge_source['commit']}",
+    "path: .source/syncer-rs",
+    "node scripts/verify_merge_options_source.mjs",
+)
+for fragment in required_merge_workflow_fragments:
+    if fragment not in workflow:
+        raise SystemExit(f"merge-options workflow provenance drift: missing {fragment}")
+
 zed_manifest = tomllib.loads((ROOT / ".zpkg.toml").read_text(encoding="utf-8"))
 if zed_manifest.get("package", {}).get("org") != "opto-sync-test":
     raise SystemExit("Zed package organization drift")
@@ -130,13 +148,7 @@ for asset in sdk_lock.get("assets", []):
         raise SystemExit(f"SDK mirror identity drift for {asset.get('mirror')}")
 
 sdk_contract = json.loads((ROOT / "contract/opto-sync-sdk-api.v1.json").read_text(encoding="utf-8"))
-if sdk_contract.get("mergeOptionsSchema") != {
-    "repository": "opto-sync/syncer.rs",
-    "commit": "8ef3d4bb63738a90b1e3958500578aebb89ee8cc",
-    "path": "schema/merge-options.schema.json",
-    "id": "https://opto-sync.dev/schema/merge-options.schema.json",
-    "sha256": "d5bd069eefc24293e3f8d8e666bdbd1d2461b59853f73c0cea7bb7c0424d7bd8",
-}:
+if sdk_contract.get("mergeOptionsSchema") != merge_source:
     raise SystemExit("SDK merge-options schema ownership drift")
 if len(sdk_contract.get("operations", [])) < 19:
     raise SystemExit("SDK API contract lost portable operations")

@@ -21,6 +21,12 @@ schema are mirrored the same way. `contract/sdk-source-lock.json` records their
 owning package coordinate and version, authoritative paths, identities, and
 SHA-256 digests. Repository verification fails closed on any byte, operation,
 language-binding, Ores dependency, or metadata-only telemetry-policy drift.
+CI separately checks out `opto-sync/syncer.rs` at the exact commit recorded by
+the SDK manifest and verifies its owned merge-options schema bytes and `$id`:
+
+```bash
+SYNCER_RS_DIR=/path/to/syncer.rs node scripts/verify_merge_options_source.mjs
+```
 
 To exercise the production validators over the authoritative valid/invalid
 fixture corpus:

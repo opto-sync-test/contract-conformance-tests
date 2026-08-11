@@ -23,6 +23,8 @@ Primary organization: `opto-sync`
 - structured logging stays injection-only: Rust, Dart, and TypeScript must emit
   one identical closed telemetry shape, reject sensitive fields, and preserve
   sync results when a logger fails or panics;
+- the client SDK merge-options reference must resolve to the exact clean
+  `opto-sync/syncer.rs` commit, schema digest, and `$id` recorded in the manifest;
 - generated fleet validators are not sufficient evidence by themselves: the
   committed mode-160000 gitlink must equal the SHA in `source-pins.json`.
   `scripts/audit_generated_harness.mjs` checks that invariant without editing

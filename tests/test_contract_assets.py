@@ -63,6 +63,18 @@ class ContractAssetTests(unittest.TestCase):
         )
         self.assertEqual(contract["telemetry"]["payloadPolicy"], "metadata_only")
 
+    def test_merge_options_source_gate_is_immutably_wired(self) -> None:
+        workflow = (ROOT / ".github/workflows/deep-tests.yml").read_text(
+            encoding="utf-8"
+        )
+        for fragment in (
+            "repository: opto-sync/syncer.rs",
+            "ref: 8ef3d4bb63738a90b1e3958500578aebb89ee8cc",
+            "path: .source/syncer-rs",
+            "node scripts/verify_merge_options_source.mjs",
+        ):
+            self.assertIn(fragment, workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

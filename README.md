@@ -13,4 +13,11 @@ python scripts/verify_repository.py
 
 The initial model is executable rather than a placeholder. Product adapters should be added through focused pull requests while preserving the reference-model tests as an oracle.
 
+## Versioned product canaries
+
+The [`opto-sync.telemetry/v1` canary](docs/opto-sync-telemetry-canary.md) vendors the
+privacy-bounded telemetry schema and sanitized corpus from `opto-sync-clients`. Its
+provenance manifest pins product version `0.3.0`, the exact source commit and paths,
+and SHA-256 hashes, while dependency-free tests enforce the cross-language contract.
+
 Tracking: https://github.com/ORESoftware/ai-agent-coordinator.rs/issues/139

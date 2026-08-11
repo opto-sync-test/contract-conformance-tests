@@ -8,6 +8,7 @@ This repository is the `contract` deep-test suite for `opto-sync`. It is intenti
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
+node --test tests/temporary_rust_workspace.test.mjs
 python scripts/verify_repository.py
 ```
 

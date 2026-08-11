@@ -20,6 +20,7 @@ dir = ".vendor/.zed"
 [develop]
 commands = [
   "PYTHONPATH=src python -m unittest discover -s tests -v",
+  "node --test tests/temporary_rust_workspace.test.mjs",
   "python scripts/verify_repository.py",
   "node scripts/run_cross_language_matrix.mjs --prepare --require-telemetry"
 ]

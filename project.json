@@ -24,10 +24,12 @@
     "docs/test-strategy.md",
     "scripts/audit_generated_harness.mjs",
     "scripts/run_cross_language_matrix.mjs",
+    "scripts/temporary_rust_workspace.mjs",
     "scripts/verify_merge_options_source.mjs",
     "scripts/verify_repository.py",
     "src/deep_tests/__init__.py",
-    "tests"
+    "tests",
+    "tests/temporary_rust_workspace.test.mjs"
   ],
   "schema_version": 2,
   "suite": "contract",

@@ -32,8 +32,10 @@ required = {
     "contract/source-lock.json",
     "scripts/audit_generated_harness.mjs",
     "scripts/run_cross_language_matrix.mjs",
+    "scripts/temporary_rust_workspace.mjs",
     "scripts/verify_merge_options_source.mjs",
     "src/deep_tests/__init__.py",
+    "tests/temporary_rust_workspace.test.mjs",
 }
 missing = sorted(path for path in required if not (ROOT / path).exists())
 if missing:
@@ -67,6 +69,8 @@ action_pattern = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}$")
 actions = [line.split("uses:", 1)[1].strip() for line in workflow.splitlines() if "uses:" in line]
 if len(actions) < 2 or any(not action_pattern.fullmatch(action) for action in actions):
     raise SystemExit(f"workflow actions are not immutably pinned: {actions}")
+if "node --test tests/temporary_rust_workspace.test.mjs" not in workflow:
+    raise SystemExit("temporary Rust workspace lifecycle test is not wired into CI")
 
 if metadata.get("bootstrap_operation") != "deep-test-fleet-20260808":
     raise SystemExit("bootstrap operation identity drift")
@@ -115,6 +119,10 @@ expected_dependencies = {
 }
 if zed_manifest.get("dependencies") != expected_dependencies:
     raise SystemExit(f"Zed dependency contract drift: {zed_manifest.get('dependencies')}")
+if "node --test tests/temporary_rust_workspace.test.mjs" not in zed_manifest.get(
+    "develop", {}
+).get("commands", []):
+    raise SystemExit("Zed develop contract omits the temporary Rust workspace lifecycle test")
 
 sdk_lock = json.loads((ROOT / "contract/sdk-source-lock.json").read_text(encoding="utf-8"))
 expected_sdk_source = {

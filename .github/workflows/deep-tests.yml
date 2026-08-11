@@ -73,6 +73,8 @@ jobs:
         uses: dart-lang/setup-dart@7654d458321ee25acccccfdb86cd48bd95768ff1
         with:
           sdk: 3.12.1
+      - name: Test temporary Rust workspace lifecycle
+        run: node --test tests/temporary_rust_workspace.test.mjs
       - name: Verify immutable merge-options schema provenance
         env:
           SYNCER_RS_DIR: ${{ github.workspace }}/.source/syncer-rs

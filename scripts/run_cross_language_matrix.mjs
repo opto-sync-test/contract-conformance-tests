@@ -2,9 +2,10 @@
 import childProcess from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { withTemporaryRustWorkspace } from './temporary_rust_workspace.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const lock = JSON.parse(fs.readFileSync(path.join(root, 'contract', 'source-lock.json'), 'utf8'));
@@ -214,47 +215,31 @@ function runRust(fixtures) {
       ],
     );
   }
-  const manifestDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'opto-sync-contract-rust-'));
-  const manifest = [
-    '[package]',
-    'name = "opto-sync-contract-adapter"',
-    'version = "0.0.0"',
-    'edition = "2021"',
-    '',
-    '[workspace]',
-    '',
-    '[dependencies]',
-    `opto-sync-client = { path = ${tomlString(path.join(clientsRoot, 'clients', 'rust'))}, default-features = false }`,
-    'serde_json = "1"',
-    '',
-    '[[bin]]',
-    'name = "opto-sync-envelope-adapter"',
-    `path = ${tomlString(path.join(root, 'adapters', 'rust', 'src', 'main.rs'))}`,
-    '',
-    '[[bin]]',
-    'name = "opto-sync-telemetry-adapter"',
-    `path = ${tomlString(path.join(root, 'adapters', 'rust', 'src', 'telemetry.rs'))}`,
-    '',
-  ].join('\n');
-  const manifestPath = path.join(manifestDirectory, 'Cargo.toml');
-  fs.writeFileSync(manifestPath, manifest);
-  const output = run(
-    'cargo',
-    [
-      'run',
-      '--quiet',
-      '--manifest-path',
-      manifestPath,
-      '--bin',
-      'opto-sync-envelope-adapter',
-      '--',
-      ...fixtures,
-    ],
-    { capture: true },
-  );
-  const report = parseAdapterOutput(output, 'rust', 'decisions');
-  if (requireTelemetry) {
-    const telemetryOutput = run(
+  return withTemporaryRustWorkspace((manifestDirectory) => {
+    const manifest = [
+      '[package]',
+      'name = "opto-sync-contract-adapter"',
+      'version = "0.0.0"',
+      'edition = "2021"',
+      '',
+      '[workspace]',
+      '',
+      '[dependencies]',
+      `opto-sync-client = { path = ${tomlString(path.join(clientsRoot, 'clients', 'rust'))}, default-features = false }`,
+      'serde_json = "1"',
+      '',
+      '[[bin]]',
+      'name = "opto-sync-envelope-adapter"',
+      `path = ${tomlString(path.join(root, 'adapters', 'rust', 'src', 'main.rs'))}`,
+      '',
+      '[[bin]]',
+      'name = "opto-sync-telemetry-adapter"',
+      `path = ${tomlString(path.join(root, 'adapters', 'rust', 'src', 'telemetry.rs'))}`,
+      '',
+    ].join('\n');
+    const manifestPath = path.join(manifestDirectory, 'Cargo.toml');
+    fs.writeFileSync(manifestPath, manifest);
+    const output = run(
       'cargo',
       [
         'run',
@@ -262,13 +247,30 @@ function runRust(fixtures) {
         '--manifest-path',
         manifestPath,
         '--bin',
-        'opto-sync-telemetry-adapter',
+        'opto-sync-envelope-adapter',
+        '--',
+        ...fixtures,
       ],
       { capture: true },
     );
-    report.telemetry = parseAdapterOutput(telemetryOutput, 'rust', 'telemetry').telemetry;
-  }
-  return report;
+    const report = parseAdapterOutput(output, 'rust', 'decisions');
+    if (requireTelemetry) {
+      const telemetryOutput = run(
+        'cargo',
+        [
+          'run',
+          '--quiet',
+          '--manifest-path',
+          manifestPath,
+          '--bin',
+          'opto-sync-telemetry-adapter',
+        ],
+        { capture: true },
+      );
+      report.telemetry = parseAdapterOutput(telemetryOutput, 'rust', 'telemetry').telemetry;
+    }
+    return report;
+  });
 }
 
 assertSourceContract();

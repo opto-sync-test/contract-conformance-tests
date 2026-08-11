@@ -35,7 +35,7 @@ if provenance.get("product_version") != "0.3.0":
     raise SystemExit("telemetry product version drift")
 if source.get("repository") != "opto-sync/opto-sync-clients":
     raise SystemExit("telemetry source repository drift")
-if source.get("commit") != "87f1e463c8e7066cfb11bf5e01640318bf028510":
+if source.get("commit") != "dddb3bf77ceb894cde538c211bc39a41b4cc6014":
     raise SystemExit("telemetry source commit drift")
 
 entries = provenance.get("files")

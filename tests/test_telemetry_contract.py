@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = ROOT / "contracts" / "opto-sync-telemetry" / "v1"
 VALID = CONTRACT / "fixtures" / "valid"
 INVALID = CONTRACT / "fixtures" / "invalid"
-EXPECTED_COMMIT = "87f1e463c8e7066cfb11bf5e01640318bf028510"
+EXPECTED_COMMIT = "dddb3bf77ceb894cde538c211bc39a41b4cc6014"
 
 
 def load(path: Path) -> dict[str, object]:

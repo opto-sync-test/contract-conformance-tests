@@ -18,9 +18,10 @@ repository, full revision, path, `$id`, and SHA-256 digest.
 
 The portable SDK API meta-schema, v1 API instance, and closed telemetry-event
 schema are mirrored the same way. `contract/sdk-source-lock.json` records their
-owning package coordinate and version, authoritative paths, identities, and
-SHA-256 digests. Repository verification fails closed on any byte, operation,
-language-binding, Ores dependency, or metadata-only telemetry-policy drift.
+owning package coordinate, version and full revision, authoritative paths,
+identities, and SHA-256 digests. Repository verification fails closed on any
+byte, operation, language-binding, Ores dependency, or metadata-only
+telemetry-policy drift.
 CI separately checks out `opto-sync/syncer.rs` at the exact commit recorded by
 the SDK manifest and verifies its owned merge-options schema bytes and `$id`:
 
@@ -41,11 +42,10 @@ The runner builds and calls the existing Rust `parse_envelope`, TypeScript
 from the fixture classification, another runtime, the pinned schema bytes, or
 the pinned source revision. It also creates the same closed, metadata-only
 telemetry event through all three SDKs and runs each SDK's sink-failure and
-sensitive-field tests when `--require-telemetry` is selected. The default mode
-remains compatible with the currently published immutable source revision and
-still enforces all 25 envelope fixtures. For local evaluation of an uncommitted
-upstream branch only, set `OPTO_SYNC_ALLOW_UNPINNED_SOURCE=1`; CI never uses that
-escape hatch.
+sensitive-field tests when `--require-telemetry` is selected; CI requires that
+lane. The default mode still enforces all 25 envelope fixtures. For local
+evaluation of an uncommitted upstream branch only, set
+`OPTO_SYNC_ALLOW_UNPINNED_SOURCE=1`; CI never uses that escape hatch.
 
 Dependencies on the opto-sync clients, the canonical Ores shared interfaces,
 and Ores structured logging are declared through `.zpkg.toml`.

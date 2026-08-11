@@ -30,6 +30,10 @@ class ContractAssetTests(unittest.TestCase):
         source_lock = json.loads(
             (ROOT / "contract/sdk-source-lock.json").read_text(encoding="utf-8")
         )
+        self.assertEqual(
+            source_lock["source"]["revision"],
+            "dbbb6dce40483ff3175e37a878fe229e01ef3fe6",
+        )
         for asset in source_lock["assets"]:
             contents = (ROOT / asset["mirror"]).read_bytes()
             self.assertEqual(hashlib.sha256(contents).hexdigest(), asset["sha256"])

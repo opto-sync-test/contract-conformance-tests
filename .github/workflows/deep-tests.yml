@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: opto-sync/opto-sync-clients
-          ref: 6fe0a5be4d3e9d1552205b49fbd2cc0e3e5facab
+          ref: dbbb6dce40483ff3175e37a878fe229e01ef3fe6
           path: .source/opto-sync-clients
           persist-credentials: false
           submodules: recursive
@@ -86,4 +86,4 @@ jobs:
       - name: Run canonical Rust, TypeScript, and Dart decision matrix
         env:
           OPTO_SYNC_CLIENTS_DIR: ${{ github.workspace }}/.source/opto-sync-clients
-        run: node scripts/run_cross_language_matrix.mjs --prepare
+        run: node scripts/run_cross_language_matrix.mjs --prepare --require-telemetry

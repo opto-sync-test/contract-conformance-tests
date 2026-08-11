@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": {
     "repository": "opto-sync/opto-sync-clients",
-    "revision": "6fe0a5be4d3e9d1552205b49fbd2cc0e3e5facab",
+    "revision": "dbbb6dce40483ff3175e37a878fe229e01ef3fe6",
     "path": "schema/opto-sync-envelope.schema.json",
     "sha256": "0434fbc1d76dd34892b92f2916a0014db40b34d761e67fd9c49f8a3a9b1ffe2d",
     "id": "https://opto-sync.dev/schema/opto-sync-envelope.schema.json"

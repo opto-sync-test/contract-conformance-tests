@@ -8,6 +8,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const lock = JSON.parse(fs.readFileSync(path.join(root, 'contract', 'source-lock.json'), 'utf8'));
+const sdkLock = JSON.parse(
+  fs.readFileSync(path.join(root, 'contract', 'sdk-source-lock.json'), 'utf8'),
+);
 const args = new Set(process.argv.slice(2));
 const prepare = args.has('--prepare');
 const requireTelemetry = args.has('--require-telemetry');
@@ -61,6 +64,36 @@ function assertSourceContract() {
   }
   const schema = JSON.parse(fs.readFileSync(vendoredSchema, 'utf8'));
   if (schema.$id !== lock.source.id) throw new Error(`schema $id drift: ${schema.$id}`);
+
+  if (sdkLock.source.revision !== lock.source.revision) {
+    throw new Error(
+      `SDK source revision drift: envelope=${lock.source.revision} sdk=${sdkLock.source.revision}`,
+    );
+  }
+  for (const asset of sdkLock.assets) {
+    const sourcePath = path.resolve(clientsRoot, asset.path);
+    const mirrorPath = path.resolve(root, asset.mirror);
+    if (path.relative(clientsRoot, sourcePath).startsWith('..')) {
+      throw new Error(`SDK source asset escapes clients checkout: ${asset.path}`);
+    }
+    if (path.relative(path.join(root, 'contract'), mirrorPath).startsWith('..')) {
+      throw new Error(`SDK mirror asset escapes contract directory: ${asset.mirror}`);
+    }
+    const sourceDigest = sha256(sourcePath);
+    const mirrorDigest = sha256(mirrorPath);
+    if (sourceDigest !== asset.sha256 || mirrorDigest !== asset.sha256) {
+      throw new Error(
+        `SDK asset digest drift for ${asset.path}: locked=${asset.sha256} source=${sourceDigest} mirror=${mirrorDigest}`,
+      );
+    }
+    if (!fs.readFileSync(sourcePath).equals(fs.readFileSync(mirrorPath))) {
+      throw new Error(`SDK mirror is not byte-for-byte identical to ${asset.path}`);
+    }
+    const document = JSON.parse(fs.readFileSync(mirrorPath, 'utf8'));
+    if (document[asset.identityField] !== asset.identity) {
+      throw new Error(`SDK asset identity drift for ${asset.path}`);
+    }
+  }
 
   if (process.env.OPTO_SYNC_ALLOW_UNPINNED_SOURCE !== '1') {
     const revision = run('git', ['rev-parse', 'HEAD'], { cwd: clientsRoot, capture: true });

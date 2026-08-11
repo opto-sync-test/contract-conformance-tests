@@ -121,9 +121,12 @@ expected_sdk_source = {
     "repository": "opto-sync/opto-sync-clients",
     "packageCoordinate": "opto-sync/opto-sync-clients",
     "packageVersion": "0.2.0",
+    "revision": "dbbb6dce40483ff3175e37a878fe229e01ef3fe6",
 }
 if sdk_lock.get("source") != expected_sdk_source:
     raise SystemExit(f"SDK source identity drift: {sdk_lock.get('source')}")
+if sdk_lock["source"]["revision"] != source_lock["source"]["revision"]:
+    raise SystemExit("envelope and SDK source revisions disagree")
 expected_sdk_assets = {
     "schema/opto-sync-sdk-api.schema.json",
     "schema/opto-sync-sdk-api.v1.json",

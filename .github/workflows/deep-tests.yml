@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: opto-sync/opto-sync-clients
-          ref: dbbb6dce40483ff3175e37a878fe229e01ef3fe6
+          ref: 98f76600ae402d38e5c812a7ec38d48f7b42000b
           path: .source/opto-sync-clients
           persist-credentials: false
           submodules: recursive

@@ -1,10 +1,25 @@
 [package]
-name = "opto-sync-test/contract-conformance-tests"
-version = "0.1.0"
-type = "test-suite"
+org = "opto-sync-test"
+name = "contract-conformance-tests"
+version = "0.2.0"
+description = "Executable Rust, TypeScript, and Dart conformance for opto-sync contracts"
+license = "MIT"
+
+[package.repository]
+vcs = "git"
+url = "https://github.com/opto-sync-test/contract-conformance-tests"
+
+[install]
+dir = ".vendor/.zed"
+
+[dependencies]
+"opto-sync/opto-sync-clients" = "^0.2.0"
+"ores-otel/ores-interfaces" = "^0.1.0"
+"oresoftware/next-loggers" = "^0.1.0"
 
 [develop]
 commands = [
   "PYTHONPATH=src python -m unittest discover -s tests -v",
-  "python scripts/verify_repository.py"
+  "python scripts/verify_repository.py",
+  "node scripts/run_cross_language_matrix.mjs --prepare --require-telemetry"
 ]

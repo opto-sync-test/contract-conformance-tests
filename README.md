@@ -8,10 +8,56 @@ This repository is the `contract` deep-test suite for `opto-sync`. It is intenti
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
+node --test tests/temporary_rust_workspace.test.mjs
 python scripts/verify_repository.py
 ```
 
-The initial model is executable rather than a placeholder. Product adapters should be added through focused pull requests while preserving the reference-model tests as an oracle.
+The repository also carries an exact, digest-locked mirror of the authoritative
+`opto-sync/opto-sync-clients/schema/opto-sync-envelope.schema.json`. The mirror
+does not redefine the contract: `contract/source-lock.json` records its owning
+repository, full revision, path, `$id`, and SHA-256 digest.
+
+The portable SDK API meta-schema, v1 API instance, and closed telemetry-event
+schema are mirrored the same way. `contract/sdk-source-lock.json` records their
+owning package coordinate, version and full revision, authoritative paths,
+identities, and SHA-256 digests. Repository verification fails closed on any
+byte, operation, language-binding, Ores dependency, or metadata-only
+telemetry-policy drift.
+CI separately checks out `opto-sync/syncer.rs` at the exact commit recorded by
+the SDK manifest and verifies its owned merge-options schema bytes and `$id`:
+
+```bash
+SYNCER_RS_DIR=/path/to/syncer.rs node scripts/verify_merge_options_source.mjs
+```
+
+To exercise the production validators over the authoritative valid/invalid
+fixture corpus:
+
+```bash
+OPTO_SYNC_CLIENTS_DIR=/path/to/opto-sync-clients \
+  node scripts/run_cross_language_matrix.mjs --prepare --require-telemetry
+```
+
+The runner builds and calls the existing Rust `parse_envelope`, TypeScript
+`parseEnvelope`, and Dart `parseEnvelope` APIs. It fails if any runtime differs
+from the fixture classification, another runtime, the pinned schema bytes, or
+the pinned source revision. It also creates the same closed, metadata-only
+telemetry event through all three SDKs and runs each SDK's sink-failure and
+sensitive-field tests when `--require-telemetry` is selected; CI requires that
+lane. The default mode still enforces all 25 envelope fixtures. For local
+evaluation of an uncommitted upstream branch only, set
+`OPTO_SYNC_ALLOW_UNPINNED_SOURCE=1`; CI never uses that escape hatch.
+
+Dependencies on the opto-sync clients, the canonical Ores shared interfaces,
+and Ores structured logging are declared through `.zpkg.toml`.
+
+Generated fleet repositories can be audited without editing their generated
+plans. This command fails if `source-pins.json` names a different commit than
+the repository's mode-160000 gitlink:
+
+```bash
+node scripts/audit_generated_harness.mjs ../rust-engine-e2e ../typescript-client-e2e ../dart-client-e2e
+```
 
 ## Versioned product canaries
 

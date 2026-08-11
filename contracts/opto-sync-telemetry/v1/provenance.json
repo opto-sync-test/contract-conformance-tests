@@ -4,7 +4,7 @@
   "product_version": "0.3.0",
   "source": {
     "repository": "opto-sync/opto-sync-clients",
-    "commit": "285aa2483676f4ed698859665c1cc2bab33447a1",
+    "commit": "87f1e463c8e7066cfb11bf5e01640318bf028510",
     "pull_request": "https://github.com/opto-sync/opto-sync-clients/pull/82",
     "schema_path": "schema/opto-sync-telemetry.schema.json",
     "fixtures_path": "schema/telemetry-fixtures"

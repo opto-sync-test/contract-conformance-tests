@@ -32,7 +32,7 @@ class ContractAssetTests(unittest.TestCase):
         )
         self.assertEqual(
             source_lock["source"]["revision"],
-            "55ffb2e922785b12d68be44ae256ff61a497f8a1",
+            "abd83db42f604ce1094bdb24230672d7e6010bac",
         )
         for asset in source_lock["assets"]:
             contents = (ROOT / asset["mirror"]).read_bytes()

@@ -4,8 +4,8 @@
   "product_version": "0.3.0",
   "source": {
     "repository": "opto-sync/opto-sync-clients",
-    "commit": "dddb3bf77ceb894cde538c211bc39a41b4cc6014",
-    "pull_request": "https://github.com/opto-sync/opto-sync-clients/pull/82",
+    "commit": "9c3690e3c5cb445100daaffd6729b6ed6b25217d",
+    "pull_request": "https://github.com/opto-sync/opto-sync-clients/pull/83",
     "schema_path": "schema/opto-sync-telemetry.schema.json",
     "fixtures_path": "schema/telemetry-fixtures"
   },
@@ -14,7 +14,7 @@
       "vendored_path": "schema.json",
       "source_path": "schema/opto-sync-telemetry.schema.json",
       "classification": "schema",
-      "sha256": "5ef06800cc46a4303608e2db4288d26d197cbee5bb459278bf10e7911a5d6e72"
+      "sha256": "ffdb03d237c0d2c2f580e37039e5238a1b62102d4ede74a8e2d880ede392d413"
     },
     {
       "vendored_path": "fixtures/valid/cycle-completed.json",

@@ -139,10 +139,9 @@ if zed_manifest.get("dependencies", {}):
     raise SystemExit(
         "test package must not declare unreleased clients/Ores Zed dependencies"
     )
-if "node --test tests/temporary_rust_workspace.test.mjs" not in zed_manifest.get(
-    "develop", {}
-).get("commands", []):
-    raise SystemExit("Zed develop contract omits the temporary Rust workspace lifecycle test")
+zed_test = zed_manifest.get("scripts", {}).get("test", "")
+if "node --test tests/temporary_rust_workspace.test.mjs" not in zed_test:
+    raise SystemExit("Zed scripts.test omits the temporary Rust workspace lifecycle test")
 
 sdk_lock = json.loads((ROOT / "contract/sdk-source-lock.json").read_text(encoding="utf-8"))
 expected_sdk_source = {

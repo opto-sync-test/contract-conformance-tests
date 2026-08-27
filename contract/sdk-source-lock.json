@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "opto-sync/opto-sync-clients",
+    "packageCoordinate": "opto-sync/opto-sync-clients",
+    "packageVersion": "0.3.0",
+    "revision": "9c3690e3c5cb445100daaffd6729b6ed6b25217d"
+  },
+  "assets": [
+    {
+      "path": "schema/opto-sync-sdk-api.schema.json",
+      "mirror": "contract/opto-sync-sdk-api.schema.json",
+      "sha256": "e28b4df1ef6bd1e25c1364c80451625e7ddaf3e55d35ead2df5474708cb322d1",
+      "identityField": "$id",
+      "identity": "https://opto-sync.dev/schema/opto-sync-sdk-api.schema.json"
+    },
+    {
+      "path": "schema/opto-sync-sdk-api.v1.json",
+      "mirror": "contract/opto-sync-sdk-api.v1.json",
+      "sha256": "11545638496622dbbdeafc177271f8ed69848c47b68f4bc13d993a330a07206c",
+      "identityField": "contract",
+      "identity": "opto-sync.sdk-api.v1"
+    },
+    {
+      "path": "schema/opto-sync-sdk-values.v1.schema.json",
+      "mirror": "contract/opto-sync-sdk-values.v1.schema.json",
+      "sha256": "4ba2c1c0b25c21bd3395eb51d72b1f1eb9ef671f8549a8398c521fcd3523d479",
+      "identityField": "$id",
+      "identity": "https://opto-sync.dev/schema/opto-sync-sdk-values.v1.schema.json"
+    },
+    {
+      "path": "schema/opto-sync-telemetry-event.schema.json",
+      "mirror": "contract/opto-sync-telemetry-event.schema.json",
+      "sha256": "b1d0cb907f6d3e1e148302934357600896baa952713a61a03348824be3a6a6a9",
+      "identityField": "$id",
+      "identity": "https://opto-sync.dev/schema/opto-sync-telemetry-event.schema.json"
+    },
+    {
+      "path": "schema/opto-sync-telemetry.schema.json",
+      "mirror": "contracts/opto-sync-telemetry/v1/schema.json",
+      "sha256": "ffdb03d237c0d2c2f580e37039e5238a1b62102d4ede74a8e2d880ede392d413",
+      "identityField": "$id",
+      "identity": "https://opto-sync.dev/schema/opto-sync-telemetry.v1.schema.json"
+    }
+  ]
+}

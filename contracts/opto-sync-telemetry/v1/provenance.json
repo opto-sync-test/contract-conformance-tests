@@ -1,0 +1,86 @@
+{
+  "manifest_version": 1,
+  "contract": "opto-sync.telemetry/v1",
+  "product_version": "0.3.0",
+  "source": {
+    "repository": "opto-sync/opto-sync-clients",
+    "commit": "9c3690e3c5cb445100daaffd6729b6ed6b25217d",
+    "pull_request": "https://github.com/opto-sync/opto-sync-clients/pull/83",
+    "schema_path": "schema/opto-sync-telemetry.schema.json",
+    "fixtures_path": "schema/telemetry-fixtures"
+  },
+  "files": [
+    {
+      "vendored_path": "schema.json",
+      "source_path": "schema/opto-sync-telemetry.schema.json",
+      "classification": "schema",
+      "sha256": "ffdb03d237c0d2c2f580e37039e5238a1b62102d4ede74a8e2d880ede392d413"
+    },
+    {
+      "vendored_path": "fixtures/valid/cycle-completed.json",
+      "source_path": "schema/telemetry-fixtures/valid/cycle-completed.json",
+      "classification": "valid",
+      "sha256": "06d0992224a439e56d23795412d8a8aa947dbfa215dadafe1e1cb7560ef98fbc"
+    },
+    {
+      "vendored_path": "fixtures/valid/cycle-failed.json",
+      "source_path": "schema/telemetry-fixtures/valid/cycle-failed.json",
+      "classification": "valid",
+      "sha256": "60ae0a402bf9d2129877e66e9fb0a28e66b400d3f99fba9ef2c3ca37297951fb"
+    },
+    {
+      "vendored_path": "fixtures/valid/state-backoff.json",
+      "source_path": "schema/telemetry-fixtures/valid/state-backoff.json",
+      "classification": "valid",
+      "sha256": "dca914204d8b99450c002afde92ae786fce0fbabca3123f925ca9fbe04e72882"
+    },
+    {
+      "vendored_path": "fixtures/invalid/impossible-calendar-date.json",
+      "source_path": "schema/telemetry-fixtures/invalid/impossible-calendar-date.json",
+      "classification": "invalid",
+      "sha256": "48b2c68b83541d3cc936964b4412e50f18b18d9cc1d6f1e189ce75986b6aef95"
+    },
+    {
+      "vendored_path": "fixtures/invalid/missing-cycle-counts.json",
+      "source_path": "schema/telemetry-fixtures/invalid/missing-cycle-counts.json",
+      "classification": "invalid",
+      "sha256": "8e3b4723d2c10c51cee5f80b5cad7ba1b76216bd1ea7db1b01b5637fc6ea0506"
+    },
+    {
+      "vendored_path": "fixtures/invalid/raw-error-message.json",
+      "source_path": "schema/telemetry-fixtures/invalid/raw-error-message.json",
+      "classification": "invalid",
+      "sha256": "003af4367e09603ee4c52be975b0f9d727feaad3c28f0c47c2c1059055d00d42"
+    },
+    {
+      "vendored_path": "fixtures/invalid/raw-record-payload.json",
+      "source_path": "schema/telemetry-fixtures/invalid/raw-record-payload.json",
+      "classification": "invalid",
+      "sha256": "f7eac1f850d8842da310abe4b785bf2a37f29278478104553aed90cbc51fa7f9"
+    },
+    {
+      "vendored_path": "fixtures/invalid/request-id-too-short.json",
+      "source_path": "schema/telemetry-fixtures/invalid/request-id-too-short.json",
+      "classification": "invalid",
+      "sha256": "827d779f98909609b770ffa34dd390efa7ade2d12ea00294986ad86bd5f13732"
+    },
+    {
+      "vendored_path": "fixtures/invalid/request-id-with-slash.json",
+      "source_path": "schema/telemetry-fixtures/invalid/request-id-with-slash.json",
+      "classification": "invalid",
+      "sha256": "76e76376b9b3f157b226ceee2ea12c93b81c4ca7bef4372b6c198d61567c07fd"
+    },
+    {
+      "vendored_path": "fixtures/invalid/state-severity-mismatch.json",
+      "source_path": "schema/telemetry-fixtures/invalid/state-severity-mismatch.json",
+      "classification": "invalid",
+      "sha256": "81fd8da9411eacbb243cc0fd2ddc0eed82a58e293e7cc39886d0a23f3e207944"
+    },
+    {
+      "vendored_path": "fixtures/invalid/unknown-runtime.json",
+      "source_path": "schema/telemetry-fixtures/invalid/unknown-runtime.json",
+      "classification": "invalid",
+      "sha256": "0c3cdcbc20d6672c54f14080131f076b5a042528534129bcc474cc4700d7cfe0"
+    }
+  ]
+}

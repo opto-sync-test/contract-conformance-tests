@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "opto-sync/opto-sync-clients",
+    "revision": "9c3690e3c5cb445100daaffd6729b6ed6b25217d",
+    "path": "schema/opto-sync-envelope.schema.json",
+    "sha256": "0434fbc1d76dd34892b92f2916a0014db40b34d761e67fd9c49f8a3a9b1ffe2d",
+    "id": "https://opto-sync.dev/schema/opto-sync-envelope.schema.json"
+  },
+  "fixtures": {
+    "root": "schema/fixtures",
+    "validCount": 8,
+    "invalidCount": 17
+  }
+}

@@ -1,0 +1,52 @@
+name: DEN-3963 generic client API canary
+
+on:
+  pull_request:
+    paths:
+      - 'contract/client-api-consumer-lock.json'
+      - 'contract/opto-sync-sdk-api.v1.json'
+      - 'scripts/verify_client_api_consumer.py'
+      - '.github/workflows/den-3963-client-api-canary.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'contract/client-api-consumer-lock.json'
+      - 'contract/opto-sync-sdk-api.v1.json'
+      - 'scripts/verify_client_api_consumer.py'
+      - '.github/workflows/den-3963-client-api-canary.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: den-3963-client-api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  consumer-canary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out conformance consumer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Check out immutable primary contract source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: opto-sync/opto-sync-clients
+          ref: 5bd8e7cf5a107b364cceb550d873ffac827f2e1a
+          path: .source/opto-sync-clients
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+          cache: ''
+      - name: Compile consumer verifier
+        run: python -m py_compile scripts/verify_client_api_consumer.py
+      - name: Verify generic schema and cross-language product contract
+        env:
+          OPTO_SYNC_CLIENTS_DIR: ${{ github.workspace }}/.source/opto-sync-clients
+        run: python scripts/verify_client_api_consumer.py

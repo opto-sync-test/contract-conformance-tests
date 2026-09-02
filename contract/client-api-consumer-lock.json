@@ -3,7 +3,7 @@
   "ticket": "DEN-3963",
   "source": {
     "repository": "opto-sync/opto-sync-clients",
-    "revision": "33ffd587d5956710a3d69b725266006e3d4d653b"
+    "revision": "5bd8e7cf5a107b364cceb550d873ffac827f2e1a"
   },
   "assets": [
     {
@@ -20,9 +20,9 @@
     },
     {
       "path": "clients/.api-surface.sha256",
-      "sha256": "46cd47d399d8de795fc6eb4bd3059924a46c91180f078e0a9c9ed574624ceaca",
+      "sha256": "278ad4da15b3aaa1127793fd3f2a7848a33dcd1729afddfe889c06d403227700",
       "identityField": "raw",
-      "identity": "59d6c2416ab7122150f2fefc3ce25374f1dbee2cd7100a7b92176c26b12ba991"
+      "identity": "5f684dca17551624aee62d7c13ea136e36f0ec8582a02b51cb3be50f170e30f6"
     }
   ]
 }

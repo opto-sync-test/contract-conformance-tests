@@ -86,7 +86,19 @@ def exact_keys(value: dict[str, Any], expected: set[str], context: str) -> None:
 
 
 def sha256(path: Path) -> str:
+    """Hash the exact bytes of a pinned source asset."""
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def canonical_json_sha256(value: Any) -> str:
+    """Reproduce the producer's semantic API-surface fingerprint."""
+    encoded = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def nested_value(document: dict[str, Any], dotted_path: str) -> Any:
@@ -242,12 +254,15 @@ def verify_surface(surface: dict[str, Any], source_root: Path) -> None:
     }:
         fail("API surface package/interface ownership drift")
 
-    surface_path = source_root / "clients" / "api-surface.json"
     fingerprint = (source_root / "clients" / ".api-surface.sha256").read_text(
         encoding="utf-8"
     ).strip()
-    if fingerprint != sha256(surface_path):
-        fail("checked-in API surface fingerprint does not match source bytes")
+    expected_fingerprint = canonical_json_sha256(surface)
+    if fingerprint != expected_fingerprint:
+        fail(
+            "checked-in API surface fingerprint does not match canonical JSON: "
+            f"expected={expected_fingerprint} observed={fingerprint}"
+        )
 
     symbols = surface["symbols"]
     if not isinstance(symbols, list) or not symbols:

@@ -8,7 +8,7 @@
   "assets": [
     {
       "path": "schemas/client-api.schema.json",
-      "sha256": "c0364892403377521e57d886285f26b5d3cb9e9ec761e5496ffcf4131041334a",
+      "sha256": "99ff3417411f64d3c95f7be8936f1ded58c69e67d586011ad7fe626fd14d8095",
       "identityField": "$id",
       "identity": "https://zpkg.tech/schemas/client-api.schema.json"
     },

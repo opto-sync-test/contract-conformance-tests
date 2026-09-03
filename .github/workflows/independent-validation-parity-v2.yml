@@ -32,7 +32,7 @@ jobs:
       - id: matrix
         shell: bash
         run: |
-          node --input-type=module <<'EOF' >> "$GITHUB_OUTPUT"
+          node --input-type=module <<'MATRIX' >> "$GITHUB_OUTPUT"
           import { readFileSync } from "node:fs";
           const cohort = JSON.parse(readFileSync("certification/cohort.v2.json", "utf8"));
           const refs = cohort.producers.map(({ repository, ref, pullRequest }) => ({ repository, ref, pullRequest }));
@@ -40,7 +40,7 @@ jobs:
           if (refs.some(({ ref }) => !/^[0-9a-f]{40}$/.test(ref))) throw new Error("all producer refs must be immutable commits");
           console.log(`producers=${JSON.stringify({ include: refs })}`);
           console.log(`api_docs_ref=${cohort.apiDocsRef}`);
-          EOF
+          MATRIX
 
   certify:
     needs: matrix
@@ -75,24 +75,46 @@ jobs:
       - name: Reproduce both authorities and final outputs
         working-directory: producer
         run: node .deps/api-docs/tools/validation-parity/parity-tool.mjs --check
-      - name: Certify receipt, scopes, route bindings, and privacy boundary
+      - name: Certify receipt, every scope, route bindings, and privacy boundary
         run: node scripts/certify-validation-parity.mjs producer "${{ matrix.repository }}" "${{ matrix.ref }}"
-      - name: Compile TypeScript output
-        run: npx --yes --package typescript@5.9.2 tsc -- --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext producer/generated/final/typescript/isomorphic/types.ts
-      - name: Compile Rust output
-        run: rustc --edition=2021 --crate-type=lib producer/generated/final/rust/isomorphic/src/lib.rs -o /tmp/libvalidation_interfaces.rlib
-      - name: Compile Go output
+      - name: Compile all TypeScript scopes and runtime facades
+        shell: bash
+        run: |
+          mapfile -t files < <(find producer/generated/final/typescript -type f -name '*.ts' -print | sort)
+          test "${#files[@]}" -gt 0
+          npx --yes --package typescript@5.9.2 tsc -- --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext "${files[@]}"
+      - name: Compile every Rust scope
+        shell: bash
+        run: |
+          found=0
+          for file in producer/generated/final/rust/*/src/lib.rs; do
+            test -f "$file" || continue
+            found=1
+            scope="$(basename "$(dirname "$(dirname "$file")")")"
+            rustc --edition=2021 --crate-type=lib "$file" -o "/tmp/libvalidation_${scope}.rlib"
+          done
+          test "$found" -eq 1
+      - name: Compile every Go scope
         shell: bash
         run: |
           tmp="$(mktemp -d)"
-          cp producer/generated/final/golang/isomorphic/types.go "$tmp/types.go"
           printf 'module external-validation-cert\n\ngo 1.25.0\n' > "$tmp/go.mod"
+          found=0
+          for dir in producer/generated/final/golang/*; do
+            test -f "$dir/types.go" || continue
+            found=1
+            scope="$(basename "$dir")"
+            mkdir -p "$tmp/$scope"
+            cp "$dir/types.go" "$tmp/$scope/types.go"
+          done
+          test "$found" -eq 1
           (cd "$tmp" && go test ./...)
-      - name: Compile Gleam output
+      - name: Compile every Gleam scope
         shell: bash
         run: |
           tmp="$(mktemp -d)"
           mkdir -p "$tmp/src"
-          cp producer/generated/final/gleam/isomorphic/src/*.gleam "$tmp/src/"
+          find producer/generated/final/gleam -type f -name '*.gleam' -exec cp {} "$tmp/src/" \;
+          test -n "$(find "$tmp/src" -type f -name '*.gleam' -print -quit)"
           printf 'name = "external_validation_cert"\nversion = "0.1.0"\n\n[dependencies]\ngleam_stdlib = ">= 1.0.0 and < 2.0.0"\n' > "$tmp/gleam.toml"
           docker run --rm -v "$tmp:/work" -w /work ghcr.io/gleam-lang/gleam:v1.14.0-erlang-alpine sh -lc 'gleam check --target erlang'

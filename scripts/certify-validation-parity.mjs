@@ -18,12 +18,15 @@ const canonicalJson = (value) => JSON.stringify(sort(value), null, 2) + '\n';
 
 assert(/^[0-9a-f]{40}$/.test(expectedRef), `producer ref is not an immutable commit: ${expectedRef}`);
 const receipt = readJson('generated/final/parity-receipt.v2.json');
+const manifest = readJson('validation/parity/manifest.v2.json');
 assert(receipt.receiptVersion === 'ores.validation.parity-receipt.v2', 'unexpected receipt version');
 assert(receipt.contractVersion === 'ores.validation.v2', 'unexpected contract version');
 assert(receipt.repository === expectedRepository, `receipt repository ${receipt.repository} != ${expectedRepository}`);
+assert(manifest.repository === expectedRepository, `manifest repository ${manifest.repository} != ${expectedRepository}`);
 assert(receipt.agreement === true, 'authority agreement is not true');
 assert(receipt.generatedOnlyAfterAgreement === true, 'final artifacts were not marked agreement-gated');
 assert(receipt.routeAuthority === 'https://github.com/ORESoftware/api-docs', 'route authority is not api-docs');
+assert(canonicalJson(receipt.runtimeExports) === canonicalJson(manifest.runtimeExports), 'runtime export policy differs between manifest and receipt');
 
 const targets = receipt.finalTargetDigests ?? {};
 assert(Object.keys(targets).length >= 9, 'receipt is missing multi-language/runtime targets');
@@ -35,15 +38,20 @@ for (const [relativePath, expectedDigest] of Object.entries(targets)) {
 }
 assert(sha256(canonicalJson(targets)) === receipt.finalAggregateDigest, 'aggregate target digest mismatch');
 
-const jsonCandidate = read('generated/candidates/json-schema/isomorphic.signature.json');
-const typeSpecCandidate = read('generated/candidates/typespec/isomorphic.signature.json');
-assert(jsonCandidate === typeSpecCandidate, 'independent candidate signatures differ');
-
 const assignedModels = new Map();
 for (const [scope, evidence] of Object.entries(receipt.scopes ?? {})) {
   assert(evidence.agreement === true, `scope ${scope} did not agree`);
-  assert(evidence.authorities?.jsonSchema?.semanticDigest === evidence.authorities?.typespec?.semanticDigest,
-    `authority semantic digests differ in ${scope}`);
+  const jsonCandidate = read(`generated/candidates/json-schema/${scope}.signature.json`);
+  const typeSpecCandidate = read(`generated/candidates/typespec/${scope}.signature.json`);
+  assert(jsonCandidate === typeSpecCandidate, `independent candidate signatures differ in ${scope}`);
+  const candidateDigest = sha256(jsonCandidate);
+  assert(candidateDigest === evidence.authorities?.jsonSchema?.semanticDigest,
+    `JSON Schema candidate digest differs in ${scope}`);
+  assert(candidateDigest === evidence.authorities?.typespec?.semanticDigest,
+    `TypeSpec candidate digest differs in ${scope}`);
+  for (const [relativePath, digest] of Object.entries(evidence.targetDigests ?? {})) {
+    assert(targets[relativePath] === digest, `scope ${scope} target digest is absent or differs: ${relativePath}`);
+  }
   for (const model of evidence.models ?? []) {
     assert(!assignedModels.has(model), `model ${model} is assigned to both ${assignedModels.get(model)} and ${scope}`);
     assignedModels.set(model, scope);
@@ -51,13 +59,16 @@ for (const [scope, evidence] of Object.entries(receipt.scopes ?? {})) {
 }
 assert(assignedModels.size > 0, 'receipt assigns no models');
 
-const forbidden = ['TrustedActor', 'ServerRequestContext', 'InternalCommand'];
+const forbidden = manifest.forbiddenPublicModels ?? [];
 for (const runtime of ['browser', 'edge']) {
   const source = read(`generated/final/typescript/runtime/${runtime}/index.ts`);
   assert(source.includes(`validationRuntime=\"${runtime}\"`), `${runtime} runtime identity is missing`);
   assert(!/\.\.\/\.\.\/server\//.test(source), `${runtime} runtime exports server scope`);
 }
-for (const relativePath of Object.keys(targets).filter((path) => !path.includes('/server/'))) {
+const isPublicTarget = (path) =>
+  /^(?:typescript|rust|golang|gleam)\/(?:isomorphic|client|edge)\//.test(path)
+  || /^typescript\/runtime\/(?:browser|edge)\//.test(path);
+for (const relativePath of Object.keys(targets).filter(isPublicTarget)) {
   const source = read(`generated/final/${relativePath}`);
   for (const model of forbidden) assert(!source.includes(model), `${model} leaked into public target ${relativePath}`);
 }
@@ -74,6 +85,7 @@ console.log(JSON.stringify({
   repository: expectedRepository,
   commit: expectedRef,
   aggregateDigest: receipt.finalAggregateDigest,
+  scopes: Object.keys(receipt.scopes).sort(),
   models: [...assignedModels.keys()].sort(),
   targets: Object.keys(targets).length,
 }, null, 2));

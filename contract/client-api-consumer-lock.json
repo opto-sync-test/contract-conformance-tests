@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "ticket": "DEN-3963",
+  "source": {
+    "repository": "opto-sync/opto-sync-clients",
+    "revision": "5bd8e7cf5a107b364cceb550d873ffac827f2e1a"
+  },
+  "assets": [
+    {
+      "path": "schemas/client-api.schema.json",
+      "sha256": "99ff3417411f64d3c95f7be8936f1ded58c69e67d586011ad7fe626fd14d8095",
+      "identityField": "$id",
+      "identity": "https://zpkg.tech/schemas/client-api.schema.json"
+    },
+    {
+      "path": "clients/api-surface.json",
+      "sha256": "59d6c2416ab7122150f2fefc3ce25374f1dbee2cd7100a7b92176c26b12ba991",
+      "identityField": "package.coordinate",
+      "identity": "opto-sync/opto-sync-clients"
+    },
+    {
+      "path": "clients/.api-surface.sha256",
+      "sha256": "278ad4da15b3aaa1127793fd3f2a7848a33dcd1729afddfe889c06d403227700",
+      "identityField": "raw",
+      "identity": "5f684dca17551624aee62d7c13ea136e36f0ec8582a02b51cb3be50f170e30f6"
+    }
+  ]
+}

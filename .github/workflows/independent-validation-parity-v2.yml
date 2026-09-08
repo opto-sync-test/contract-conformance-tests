@@ -26,7 +26,7 @@ jobs:
       producers: ${{ steps.matrix.outputs.producers }}
       api_docs_ref: ${{ steps.matrix.outputs.api_docs_ref }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
       - id: matrix
@@ -50,22 +50,22 @@ jobs:
     runs-on: ubuntu-latest
     name: certify ${{ matrix.repository }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           repository: ${{ matrix.repository }}
           ref: ${{ matrix.ref }}
           path: producer
           persist-credentials: false
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           repository: ORESoftware/api-docs
           ref: ${{ needs.matrix.outputs.api_docs_ref }}
           path: producer/.deps/api-docs
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: "22.16.0"
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
@@ -82,7 +82,7 @@ jobs:
         run: |
           mapfile -t files < <(find producer/generated/final/typescript -type f -name '*.ts' -print | sort)
           test "${#files[@]}" -gt 0
-          npx --yes --package typescript@5.9.2 tsc -- --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext "${files[@]}"
+          npx --yes --package typescript@5.9.2 -- tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext "${files[@]}"
       - name: Compile every Rust scope
         shell: bash
         run: |

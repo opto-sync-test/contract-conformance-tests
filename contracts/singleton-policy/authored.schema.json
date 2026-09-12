@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/opto-sync-test/contract-conformance-tests/contracts/singleton-policy/authored.schema.json",
+  "$defs": {
+    "SingletonPolicyV1": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "SingletonPolicyV1",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["strict"]
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": ["mode", "enabled"],
+      "additionalProperties": false
+    }
+  }
+}

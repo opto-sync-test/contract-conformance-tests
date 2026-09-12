@@ -18,8 +18,16 @@
           "maxLength": 128
         },
         "direction": {
-          "type": "string",
-          "enum": ["pull", "push"]
+          "anyOf": [
+            {
+              "const": "pull",
+              "type": "string"
+            },
+            {
+              "const": "push",
+              "type": "string"
+            }
+          ]
         },
         "batch_size": {
           "type": "integer",

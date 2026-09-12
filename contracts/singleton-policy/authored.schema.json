@@ -9,7 +9,7 @@
       "properties": {
         "mode": {
           "type": "string",
-          "enum": ["strict"]
+          "const": "strict"
         },
         "enabled": {
           "type": "boolean"

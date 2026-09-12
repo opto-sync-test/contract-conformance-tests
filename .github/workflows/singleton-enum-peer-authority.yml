@@ -1,0 +1,166 @@
+name: Singleton enum peer-authority conformance
+
+on:
+  pull_request:
+    paths:
+      - "contracts/singleton-policy/**"
+      - ".github/workflows/singleton-enum-peer-authority.yml"
+  push:
+    branches: [main]
+    paths:
+      - "contracts/singleton-policy/**"
+      - ".github/workflows/singleton-enum-peer-authority.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  singleton-peer-authority:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact Opto Sync test head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify exact test revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.16.0
+
+      - name: Bind independently authored authority bytes
+        id: authored
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'typespec=%s\n' "$(sha256sum contracts/singleton-policy/main.tsp | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          printf 'schema=%s\n' "$(sha256sum contracts/singleton-policy/authored.schema.json | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Transpile TypeSpec and compare singleton enum peer
+        uses: ORESoftware/typespec-json-schema-validator@5602a6ba344cdf143386d861a586b9ba2e14a2a1
+        with:
+          typespec: contracts/singleton-policy/main.tsp
+          schema: contracts/singleton-policy/authored.schema.json
+          instances: contracts/singleton-policy/instances
+          report: .typespec-json-schema-validator/singleton/report.json
+          sarif: .typespec-json-schema-validator/singleton/report.sarif
+          contract_ir: .typespec-json-schema-validator/singleton/contract-ir.json
+          output_dir: .typespec-json-schema-validator/singleton/generated
+          max_probes: "64"
+
+      - name: Require first-class peer roles and comparison evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          report=.typespec-json-schema-validator/singleton/report.json
+          generated=.typespec-json-schema-validator/singleton/generated/typespec.generated.schema.json
+          test -s "$report"
+          test -s "$generated"
+          jq -e '
+            .status == "passed" and
+            .zeroUnexplainedFindings == true and
+            .authorities.precedence == "none" and
+            .authorities.typespec.authority == "independently-authored" and
+            .authorities.jsonSchema.authority == "independently-authored" and
+            .authorities.typespec.generatedJsonSchemaRole == "comparison-evidence-only" and
+            .coverage.typespecGeneratedJsonSchemaComparison == true and
+            .coverage.differentialInstanceValidation == true and
+            (.differential.summary.probesEvaluated // 0) > 0 and
+            (.differential.summary.divergences // 0) == 0 and
+            (.differential.summary.refusals // 0) == 0
+          ' "$report"
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema"' "$generated"
+          jq -e '."$defs".SingletonPolicyV1.properties.mode.enum == ["strict"]' contracts/singleton-policy/authored.schema.json
+          jq -e '.. | objects | select(.const? == "strict" and .type? == "string")' "$generated" >/dev/null
+
+      - name: Reject TypeSpec-only singleton drift
+        id: typespec_drift
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          case_dir="$RUNNER_TEMP/typespec-drift"
+          mkdir -p "$case_dir"
+          sed 's/mode: "strict";/mode: "relaxed";/' contracts/singleton-policy/main.tsp > "$case_dir/main.tsp"
+          node .github/workflows/../../.does-not-exist 2>/dev/null || true
+          git clone --depth 1 https://github.com/ORESoftware/typespec-json-schema-validator.git "$case_dir/tjsv"
+          git -C "$case_dir/tjsv" fetch --depth 1 origin 5602a6ba344cdf143386d861a586b9ba2e14a2a1
+          git -C "$case_dir/tjsv" checkout --detach 5602a6ba344cdf143386d861a586b9ba2e14a2a1
+          npm ci --prefix "$case_dir/tjsv"
+          node "$case_dir/tjsv/bin/typespec-json-schema-validator.mjs" check \
+            --typespec "$case_dir/main.tsp" \
+            --schema contracts/singleton-policy/authored.schema.json \
+            --instances contracts/singleton-policy/instances \
+            --report "$case_dir/report.json" \
+            --contract-ir "$case_dir/contract-ir.json" \
+            --output-dir "$case_dir/generated" \
+            --max-probes 64 \
+            --quiet
+
+      - name: Assert TypeSpec-only drift failed closed
+        env:
+          OUTCOME: ${{ steps.typespec_drift.outcome }}
+        run: test "$OUTCOME" = failure
+
+      - name: Reject JSON-Schema-only singleton drift
+        id: schema_drift
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          case_dir="$RUNNER_TEMP/schema-drift"
+          mkdir -p "$case_dir"
+          cp contracts/singleton-policy/authored.schema.json "$case_dir/authored.schema.json"
+          node --input-type=module "$case_dir/authored.schema.json" <<'NODE'
+          import { readFile, writeFile } from 'node:fs/promises';
+          const path = process.argv[1];
+          const schema = JSON.parse(await readFile(path, 'utf8'));
+          schema.$defs.SingletonPolicyV1.properties.mode.enum = ['relaxed'];
+          await writeFile(path, `${JSON.stringify(schema, null, 2)}\n`);
+          NODE
+          tjsv_dir="$RUNNER_TEMP/typespec-drift/tjsv"
+          node "$tjsv_dir/bin/typespec-json-schema-validator.mjs" check \
+            --typespec contracts/singleton-policy/main.tsp \
+            --schema "$case_dir/authored.schema.json" \
+            --instances contracts/singleton-policy/instances \
+            --report "$case_dir/report.json" \
+            --contract-ir "$case_dir/contract-ir.json" \
+            --output-dir "$case_dir/generated" \
+            --max-probes 64 \
+            --quiet
+
+      - name: Assert JSON-Schema-only drift failed closed
+        env:
+          OUTCOME: ${{ steps.schema_drift.outcome }}
+        run: test "$OUTCOME" = failure
+
+      - name: Prove authored sources remained immutable
+        env:
+          EXPECTED_TYPESPEC_SHA256: ${{ steps.authored.outputs.typespec }}
+          EXPECTED_SCHEMA_SHA256: ${{ steps.authored.outputs.schema }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum contracts/singleton-policy/main.tsp | awk '{print $1}')" = "$EXPECTED_TYPESPEC_SHA256"
+          test "$(sha256sum contracts/singleton-policy/authored.schema.json | awk '{print $1}')" = "$EXPECTED_SCHEMA_SHA256"
+          git diff --exit-code -- contracts/singleton-policy
+
+      - name: Retain diagnostic evidence
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: singleton-peer-authority-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .typespec-json-schema-validator/singleton
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 30

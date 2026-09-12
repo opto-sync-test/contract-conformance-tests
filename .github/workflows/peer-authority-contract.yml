@@ -32,14 +32,17 @@ jobs:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
-      - name: Check out exact canonical TJSV
+      - name: Check out exact TJSV literal-union candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: ORESoftware/typespec-json-schema-validator
-          ref: 93dd73cb246a09b0a1c62d7192cc62ca6ecbe405
+          ref: d3124c2c5b25682b059ae05ff1a235cef7604876
           path: .tjsv
           persist-credentials: false
           fetch-depth: 1
+
+      - name: Verify exact TJSV candidate revision
+        run: test "$(git -C .tjsv rev-parse HEAD)" = "d3124c2c5b25682b059ae05ff1a235cef7604876"
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020

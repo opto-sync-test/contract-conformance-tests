@@ -28,6 +28,10 @@ jobs:
             typespec: contracts/tjsv-peer-authority/main.tsp
             schema: contracts/tjsv-peer-authority/authored.schema.json
             instances: ''
+          - id: singleton-policy
+            typespec: contracts/singleton-policy/main.tsp
+            schema: contracts/singleton-policy/authored.schema.json
+            instances: contracts/singleton-policy/instances
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -47,7 +51,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: ORESoftware/typespec-json-schema-validator
-          ref: 93dd73cb246a09b0a1c62d7192cc62ca6ecbe405
+          ref: 07688e1eea92a666f7e8647038c9f2c1544440ed
           path: .tjsv
           persist-credentials: false
           fetch-depth: 1

@@ -18,7 +18,7 @@ permissions:
 jobs:
   tjsv-parity:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Check out exact Opto Sync test head
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -27,22 +27,28 @@ jobs:
           persist-credentials: false
           fetch-depth: 1
 
-      - name: Verify exact test revision
+      - name: Verify exact test revision and bind authored bytes
+        id: authored
+        shell: bash
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          printf 'typespec=%s\n' "$(sha256sum contracts/sync-batch/main.tsp | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          printf 'schema=%s\n' "$(sha256sum contracts/sync-batch/authored.schema.json | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
-      - name: Check out exact TJSV literal-union candidate
+      - name: Check out exact TJSV literal-union replacement candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: ORESoftware/typespec-json-schema-validator
-          ref: d3124c2c5b25682b059ae05ff1a235cef7604876
+          ref: 33117eecd843767b48507f2f29265ad5b983976b
           path: .tjsv
           persist-credentials: false
           fetch-depth: 1
 
       - name: Verify exact TJSV candidate revision
-        run: test "$(git -C .tjsv rev-parse HEAD)" = "d3124c2c5b25682b059ae05ff1a235cef7604876"
+        run: test "$(git -C .tjsv rev-parse HEAD)" = "33117eecd843767b48507f2f29265ad5b983976b"
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -52,12 +58,12 @@ jobs:
       - name: Install pinned TJSV dependency closure
         run: npm ci --prefix .tjsv
 
-      - name: Transpile TypeSpec and compare generated vs authored JSON Schema
+      - name: Transpile TypeSpec to Schema B and compare with independent authored Schema A
+        shell: bash
         run: |
           set -euo pipefail
           rm -rf .typespec-json-schema-validator/opto-sync
           mkdir -p .typespec-json-schema-validator/opto-sync/generated
-          set +e
           node .tjsv/bin/typespec-json-schema-validator.mjs check \
             --typespec contracts/sync-batch/main.tsp \
             --schema contracts/sync-batch/authored.schema.json \
@@ -68,15 +74,150 @@ jobs:
             --sarif .typespec-json-schema-validator/opto-sync/report.sarif \
             --contract-ir .typespec-json-schema-validator/opto-sync/contract-ir.json \
             --quiet
-          status=$?
-          set -e
-          if [ "$status" -ne 0 ]; then
-            echo "TJSV stopped with exit $status; parity report follows" >&2
-            test -s .typespec-json-schema-validator/opto-sync/report.json && cat .typespec-json-schema-validator/opto-sync/report.json >&2
-            exit "$status"
-          fi
-          test -s .typespec-json-schema-validator/opto-sync/generated/typespec.generated.schema.json
-          test -s .typespec-json-schema-validator/opto-sync/report.json
-          test -s .typespec-json-schema-validator/opto-sync/contract-ir.json
-          grep -F '"$schema": "https://json-schema.org/draft/2020-12/schema"' \
-            contracts/sync-batch/authored.schema.json
+
+      - name: Prove first-class peer roles and literal-union comparison coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          generated=.typespec-json-schema-validator/opto-sync/generated/typespec.generated.schema.json
+          report=.typespec-json-schema-validator/opto-sync/report.json
+          ir=.typespec-json-schema-validator/opto-sync/contract-ir.json
+          test -s "$generated"
+          test -s "$report"
+          test -s "$ir"
+          grep -F '"$schema": "https://json-schema.org/draft/2020-12/schema"' contracts/sync-batch/authored.schema.json
+          jq -e '
+            .status == "passed" and
+            .zeroUnexplainedFindings == true and
+            .authorities.precedence == "none" and
+            .authorities.typespec.authority == "independently-authored" and
+            .authorities.jsonSchema.authority == "independently-authored" and
+            .authorities.typespec.generatedJsonSchemaRole == "comparison-evidence-only" and
+            .coverage.typespecGeneratedJsonSchemaComparison == true and
+            .coverage.differentialInstanceValidation == true and
+            (.differential.summary.probesEvaluated // 0) > 0 and
+            (.differential.summary.divergences // 0) == 0
+          ' "$report"
+          jq -e '
+            .authorities.typespec == "independently-authored" and
+            .authorities.jsonSchema == "independently-authored" and
+            .authorities.generatedJsonSchema == "comparison-evidence-only" and
+            .authorities.precedence == "none"
+          ' "$ir"
+          jq -e '
+            [.. | objects | select(has("anyOf")) | .anyOf
+              | select(type == "array" and length == 2 and all(.[]; .type == "string" and has("const")))]
+            | length >= 1
+          ' "$generated"
+          test "$generated" != "contracts/sync-batch/authored.schema.json"
+
+      - name: Prepare TypeSpec-only semantic drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed 's/direction: "pull" | "push";/direction: "pull" | "push" | "merge";/' \
+            contracts/sync-batch/main.tsp > contracts/sync-batch/typespec-drift.tsp
+          grep -Fq 'direction: "pull" | "push" | "merge";' contracts/sync-batch/typespec-drift.tsp
+          grep -Fq 'direction: "pull" | "push";' contracts/sync-batch/main.tsp
+
+      - name: TypeSpec-only drift must fail after Schema-B generation and A/B comparison
+        id: typespec_drift
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .typespec-json-schema-validator/type-drift
+          mkdir -p .typespec-json-schema-validator/type-drift/generated
+          node .tjsv/bin/typespec-json-schema-validator.mjs check \
+            --typespec contracts/sync-batch/typespec-drift.tsp \
+            --schema contracts/sync-batch/authored.schema.json \
+            --instances contracts/sync-batch/instances \
+            --output-dir .typespec-json-schema-validator/type-drift/generated \
+            --bundle-id typespec.generated.schema.json \
+            --report .typespec-json-schema-validator/type-drift/report.json \
+            --contract-ir .typespec-json-schema-validator/type-drift/contract-ir.json \
+            --quiet
+
+      - name: Require TypeSpec-only semantic mismatch evidence
+        if: always()
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.typespec_drift.outcome }}
+        run: |
+          set -euo pipefail
+          test "$OUTCOME" = failure
+          report=.typespec-json-schema-validator/type-drift/report.json
+          generated=.typespec-json-schema-validator/type-drift/generated/typespec.generated.schema.json
+          test -s "$report"
+          test -s "$generated"
+          jq -e '
+            .status == "stopped_for_evaluation" and
+            .authorities.precedence == "none" and
+            .authorities.typespec.authority == "independently-authored" and
+            .authorities.jsonSchema.authority == "independently-authored" and
+            .coverage.typespecGeneratedJsonSchemaComparison == true and
+            any(.findings[]; .ruleId == "generated-authored-semantic-mismatch")
+          ' "$report"
+          rm -f contracts/sync-batch/typespec-drift.tsp
+
+      - name: Prepare JSON-Schema-only semantic drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq '."$defs".SyncBatchV1.properties.direction.enum += ["merge"]' \
+            contracts/sync-batch/authored.schema.json > contracts/sync-batch/authored-drift.schema.json
+          jq -e '."$defs".SyncBatchV1.properties.direction.enum | index("merge") != null' \
+            contracts/sync-batch/authored-drift.schema.json
+
+      - name: JSON-Schema-only drift must fail against unchanged TypeSpec Schema B
+        id: json_drift
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .typespec-json-schema-validator/json-drift
+          mkdir -p .typespec-json-schema-validator/json-drift/generated
+          node .tjsv/bin/typespec-json-schema-validator.mjs check \
+            --typespec contracts/sync-batch/main.tsp \
+            --schema contracts/sync-batch/authored-drift.schema.json \
+            --instances contracts/sync-batch/instances \
+            --output-dir .typespec-json-schema-validator/json-drift/generated \
+            --bundle-id typespec.generated.schema.json \
+            --report .typespec-json-schema-validator/json-drift/report.json \
+            --contract-ir .typespec-json-schema-validator/json-drift/contract-ir.json \
+            --quiet
+
+      - name: Require JSON-Schema-only semantic mismatch evidence
+        if: always()
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.json_drift.outcome }}
+        run: |
+          set -euo pipefail
+          test "$OUTCOME" = failure
+          report=.typespec-json-schema-validator/json-drift/report.json
+          generated=.typespec-json-schema-validator/json-drift/generated/typespec.generated.schema.json
+          test -s "$report"
+          test -s "$generated"
+          jq -e '
+            .status == "stopped_for_evaluation" and
+            .authorities.precedence == "none" and
+            .authorities.typespec.authority == "independently-authored" and
+            .authorities.jsonSchema.authority == "independently-authored" and
+            .coverage.typespecGeneratedJsonSchemaComparison == true and
+            any(.findings[]; .ruleId == "generated-authored-semantic-mismatch")
+          ' "$report"
+          rm -f contracts/sync-batch/authored-drift.schema.json
+
+      - name: Prove authored peer sources stayed byte-for-byte immutable
+        if: always()
+        shell: bash
+        env:
+          EXPECTED_TYPESPEC_SHA256: ${{ steps.authored.outputs.typespec }}
+          EXPECTED_SCHEMA_SHA256: ${{ steps.authored.outputs.schema }}
+        run: |
+          set -euo pipefail
+          rm -f contracts/sync-batch/typespec-drift.tsp contracts/sync-batch/authored-drift.schema.json
+          test "$(sha256sum contracts/sync-batch/main.tsp | awk '{print $1}')" = "$EXPECTED_TYPESPEC_SHA256"
+          test "$(sha256sum contracts/sync-batch/authored.schema.json | awk '{print $1}')" = "$EXPECTED_SCHEMA_SHA256"
+          git diff --exit-code -- contracts/sync-batch/main.tsp contracts/sync-batch/authored.schema.json

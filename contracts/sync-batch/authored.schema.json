@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/opto-sync-test/contract-conformance-tests/contracts/sync-batch/authored.schema.json",
+  "$defs": {
+    "SyncBatchV1": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "SyncBatchV1",
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "collection": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["pull", "push"]
+        },
+        "batch_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "include_tombstones": {
+          "type": "boolean"
+        }
+      },
+      "required": ["version", "collection", "direction", "batch_size", "include_tombstones"],
+      "unevaluatedProperties": false
+    }
+  }
+}

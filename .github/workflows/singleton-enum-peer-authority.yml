@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ORESoftware/typespec-json-schema-validator
-          ref: 5602a6ba344cdf143386d861a586b9ba2e14a2a1
+          ref: bf4b2d9d1cbd14035097120ad5da422ec070c413
           path: .tjsv
           persist-credentials: false
           fetch-depth: 1
@@ -50,7 +50,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git -C .tjsv rev-parse HEAD)" = "5602a6ba344cdf143386d861a586b9ba2e14a2a1"
+          test "$(git -C .tjsv rev-parse HEAD)" = "bf4b2d9d1cbd14035097120ad5da422ec070c413"
           npm ci --prefix .tjsv
 
       - name: Bind independently authored authority bytes
@@ -62,7 +62,7 @@ jobs:
           printf 'schema=%s\n' "$(sha256sum contracts/singleton-policy/authored.schema.json | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - name: Transpile TypeSpec and compare singleton enum peer
-        uses: ORESoftware/typespec-json-schema-validator@5602a6ba344cdf143386d861a586b9ba2e14a2a1
+        uses: ORESoftware/typespec-json-schema-validator@bf4b2d9d1cbd14035097120ad5da422ec070c413
         with:
           typespec: contracts/singleton-policy/main.tsp
           schema: contracts/singleton-policy/authored.schema.json

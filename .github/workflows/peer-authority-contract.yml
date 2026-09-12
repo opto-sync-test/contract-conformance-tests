@@ -54,6 +54,7 @@ jobs:
           set -euo pipefail
           rm -rf .typespec-json-schema-validator/opto-sync
           mkdir -p .typespec-json-schema-validator/opto-sync/generated
+          set +e
           node .tjsv/bin/typespec-json-schema-validator.mjs check \
             --typespec contracts/sync-batch/main.tsp \
             --schema contracts/sync-batch/authored.schema.json \
@@ -64,6 +65,13 @@ jobs:
             --sarif .typespec-json-schema-validator/opto-sync/report.sarif \
             --contract-ir .typespec-json-schema-validator/opto-sync/contract-ir.json \
             --quiet
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            echo "TJSV stopped with exit $status; parity report follows" >&2
+            test -s .typespec-json-schema-validator/opto-sync/report.json && cat .typespec-json-schema-validator/opto-sync/report.json >&2
+            exit "$status"
+          fi
           test -s .typespec-json-schema-validator/opto-sync/generated/typespec.generated.schema.json
           test -s .typespec-json-schema-validator/opto-sync/report.json
           test -s .typespec-json-schema-validator/opto-sync/contract-ir.json

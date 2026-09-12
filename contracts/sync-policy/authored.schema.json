@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/opto-sync-test/contract-conformance-tests/contracts/sync-policy/authored.schema.json",
+  "$defs": {
+    "SyncPolicyV1": {
+      "$id": "SyncPolicyV1",
+      "type": "object",
+      "properties": {
+        "version": { "type": "integer", "minimum": 1, "maximum": 1 },
+        "collection": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "max_batch": { "type": "integer", "minimum": 1, "maximum": 1000 },
+        "retry_limit": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "offline_capable": { "type": "boolean" }
+      },
+      "required": ["version", "collection", "max_batch", "retry_limit", "offline_capable"],
+      "unevaluatedProperties": false
+    }
+  }
+}

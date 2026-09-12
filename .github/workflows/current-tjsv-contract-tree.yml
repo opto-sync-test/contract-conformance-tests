@@ -1,0 +1,119 @@
+name: Current TJSV contract-tree parity
+
+on:
+  pull_request:
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/current-tjsv-contract-tree.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  peer-pair:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: sync-batch
+            typespec: contracts/sync-batch/main.tsp
+            schema: contracts/sync-batch/authored.schema.json
+            instances: contracts/sync-batch/instances
+          - id: sync-policy
+            typespec: contracts/sync-policy/main.tsp
+            schema: contracts/sync-policy/authored.schema.json
+            instances: contracts/sync-policy/instances
+          - id: tjsv-peer-authority
+            typespec: contracts/tjsv-peer-authority/main.tsp
+            schema: contracts/tjsv-peer-authority/authored.schema.json
+            instances: ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify exact candidate
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Check out current canonical TJSV
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ORESoftware/typespec-json-schema-validator
+          ref: 93dd73cb246a09b0a1c62d7192cc62ca6ecbe405
+          path: .tjsv
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22.16.0
+
+      - name: Install exact TJSV dependency closure
+        run: npm ci --prefix .tjsv
+
+      - name: Execute exact peer comparison
+        id: parity
+        shell: bash
+        env:
+          PAIR_ID: ${{ matrix.id }}
+          TYPESPEC: ${{ matrix.typespec }}
+          SCHEMA: ${{ matrix.schema }}
+          INSTANCES: ${{ matrix.instances }}
+        run: |
+          set -uo pipefail
+          out=".typespec-json-schema-validator/current/${PAIR_ID}"
+          rm -rf "$out"
+          mkdir -p "$out/generated"
+          args=(
+            check
+            --typespec "$TYPESPEC"
+            --schema "$SCHEMA"
+            --output-dir "$out/generated"
+            --bundle-id typespec.generated.schema.json
+            --report "$out/report.json"
+            --sarif "$out/report.sarif"
+            --contract-ir "$out/contract-ir.json"
+            --max-probes 64
+            --quiet
+          )
+          if [ -n "$INSTANCES" ]; then
+            args+=(--instances "$INSTANCES")
+          fi
+          set +e
+          node .tjsv/bin/typespec-json-schema-validator.mjs "${args[@]}"
+          status=$?
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "=== ${PAIR_ID}: exit ${status} ==="
+          if [ -s "$out/report.json" ]; then
+            jq '{status, zeroUnexplainedFindings, authorities, coverage, differential, findings}' "$out/report.json"
+          fi
+          if [ -s "$out/generated/typespec.generated.schema.json" ]; then
+            echo "generated_schema_sha256=$(sha256sum "$out/generated/typespec.generated.schema.json" | awk '{print $1}')"
+          fi
+          echo "authored_schema_sha256=$(sha256sum "$SCHEMA" | awk '{print $1}')"
+          exit "$status"
+
+      - name: Retain pair evidence
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: current-tjsv-${{ matrix.id }}-${{ github.run_id }}
+          path: .typespec-json-schema-validator/current/${{ matrix.id }}/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Prove authored authorities were not modified
+        if: always()
+        run: git diff --exit-code -- '${{ matrix.typespec }}' '${{ matrix.schema }}'

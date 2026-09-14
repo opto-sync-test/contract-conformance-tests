@@ -57,14 +57,15 @@ class CounterpartInfraLayoutTests(unittest.TestCase):
             run("terraform", "validate", "-no-color", cwd=env_root)
         self.assertEqual(seen, set(ENVIRONMENTS))
 
-    def test_environments_do_not_duplicate_provider_native_source(self) -> None:
-        for path in (self.root / "environments").rglob("*"):
-            if not path.is_file():
-                continue
-            self.assertNotIn(path.name, PROVIDER_NATIVE_NAMES, path)
-            self.assertFalse("supabase" in path.parts, path)
-            self.assertFalse(path.name.endswith(".tfstate"), path)
-            self.assertNotIn(".terraform", path.parts, path)
+    def test_environments_do_not_commit_provider_native_source_or_state(self) -> None:
+        tracked = run("git", "ls-files", "environments", cwd=self.root).stdout.splitlines()
+        self.assertTrue(tracked)
+        for relative in tracked:
+            path = pathlib.PurePosixPath(relative)
+            self.assertNotIn(path.name, PROVIDER_NATIVE_NAMES, relative)
+            self.assertNotIn("supabase", path.parts, relative)
+            self.assertFalse(path.name.endswith(".tfstate"), relative)
+            self.assertNotIn(".terraform", path.parts, relative)
 
     def test_worker_shell_is_opt_in(self) -> None:
         module_text = (self.root / "modules/cloudflare/terraform/worker-shell/main.tf").read_text()

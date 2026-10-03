@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "ores.validation.test-cohort.v2",
+  "apiDocsRef": "c75c3924847a42d8d2854eb78c85f330ea726bef",
+  "producers": [
+    {"repository":"fanwaave/fanwaave-interfaces","ref":"8a815eb952bfcc70f1fd5d6ad276cbc6dbc7e9df","pullRequest":"https://github.com/fanwaave/fanwaave-interfaces/pull/4"},
+    {"repository":"anticaptrad/act-interfaces","ref":"7efc552fbe72c14c03dd0e2584bb02784418e1c3","pullRequest":"https://github.com/anticaptrad/act-interfaces/pull/12"},
+    {"repository":"cliptown/cliptown-interfaces","ref":"fbaf7abc0d1b1d543783c33de023950abeac5a18","pullRequest":"https://github.com/cliptown/cliptown-interfaces/pull/21"},
+    {"repository":"declarative-migrations/declmig-interfaces","ref":"707b24983e7c4917ed421af241992f7f7a9fc0b6","pullRequest":"https://github.com/declarative-migrations/declmig-interfaces/pull/10"},
+    {"repository":"opto-sync/opto-sync-interfaces","ref":"f115db806924757001a83e799c247c6ddc8c3ab5","pullRequest":"https://github.com/opto-sync/opto-sync-interfaces/pull/5"},
+    {"repository":"zed-pkg/zed-interfaces","ref":"2ef916ab1208d7ee35b9a07d0132e8b83fd445c8","pullRequest":"https://github.com/zed-pkg/zed-interfaces/pull/81"},
+    {"repository":"file-tunnel/ftnl-interfaces","ref":"0cc458d3643cfef351a45f6b2067cbb8eb839d15","pullRequest":"https://github.com/file-tunnel/ftnl-interfaces/pull/26"},
+    {"repository":"embedded-alerts/eal-interfaces","ref":"4437882b5b8c14557f411126d5f09a2a8e6adf1e","pullRequest":"https://github.com/embedded-alerts/eal-interfaces/pull/12"},
+    {"repository":"evento-globolo/evgl-interfaces","ref":"1df4d5e6db9e2819e65eaa44ae0e82838fd200fd","pullRequest":"https://github.com/evento-globolo/evgl-interfaces/pull/9"},
+    {"repository":"ores-otel/ores-interfaces","ref":"49f4acc360a9076b5e7abaf3ff69c410302d02b5","pullRequest":"https://github.com/ores-otel/ores-interfaces/pull/13"}
+  ]
+}

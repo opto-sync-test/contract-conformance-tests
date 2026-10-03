@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "collection": "widgets",
+  "direction": "pull",
+  "batch_size": 250,
+  "cursor": "cursor-v1-000042",
+  "include_tombstones": true
+}

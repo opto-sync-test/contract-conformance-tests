@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "collection": "widgets",
+  "direction": "merge",
+  "batch_size": 250,
+  "include_tombstones": false
+}

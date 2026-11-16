@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "collection": "accounts",
+  "max_batch": 250,
+  "retry_limit": 5,
+  "offline_capable": true
+}
